@@ -239,7 +239,7 @@ export default function MortgageReadiness(){
       submittedAt:new Date().toISOString(),
     };
     try{
-      await fetch("https://hook.us2.make.com/7yxl585a4hfobyo4i2zbiqly1hu3z86e",{
+      await fetch("https://hook.us2.make.com/nn5375ypqb8ripym0us9kmmk3b98p9qw",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({

@@ -183,7 +183,6 @@ function AdminView({onClose}){
 }
 
 export default function MortgageReadiness(){
-  const [view,setView]=useState("app"); // "app" | "admin"
   const [step,setStep]=useState(0);
   const [answers,setAnswers]=useState({});
   const [result,setResult]=useState(null);
@@ -194,8 +193,8 @@ export default function MortgageReadiness(){
   const [formSubmitted,setFormSubmitted]=useState(false);
   const [formError,setFormError]=useState("");
 
-  if(view==="admin") return <AdminView onClose={()=>setView("app")}/>;
-  if(view==="login") return <LoginView onSuccess={()=>setView("admin")} onClose={()=>setView("app")}/>;
+
+
 
   const current=STEPS[step];
   const progress=(step/STEPS.length)*100;
@@ -269,9 +268,7 @@ export default function MortgageReadiness(){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"2rem",paddingBottom:"1rem",borderBottom:`1px solid ${BORDER}`}}>
           <div style={{fontSize:"1rem",fontWeight:700}}>Dom Maier <em style={{color:ACCENT,fontStyle:"italic"}}>Finance</em></div>
           <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
-            <button onClick={()=>setView("login")} style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.25)",background:"transparent",border:"none",cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.1em",textTransform:"uppercase",padding:0}}>
-              View Leads
-            </button>
+
             <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.3)",letterSpacing:"0.15em",textTransform:"uppercase"}}>Free Assessment</div>
           </div>
         </div>
@@ -363,6 +360,41 @@ export default function MortgageReadiness(){
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Video Message */}
+            <div style={{borderBottom:`1px solid ${BORDER}`}}>
+              <div style={{padding:"1.5rem 2rem 0"}}>
+                <div style={{fontSize:"0.65rem",color:ACCENT,letterSpacing:"0.2em",textTransform:"uppercase",fontWeight:600,marginBottom:"0.75rem"}}>
+                  A Message From Dom
+                </div>
+              </div>
+              <div style={{
+                margin:"0 2rem 1.5rem",
+                borderRadius:6,
+                overflow:"hidden",
+                border:`1px solid ${BORDER}`,
+                background:"#111",
+                aspectRatio:"16/9",
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"center",
+                justifyContent:"center",
+                gap:"0.75rem",
+              }}>
+                <div style={{
+                  width:56,height:56,borderRadius:"50%",
+                  background:`rgba(201,169,110,0.1)`,
+                  border:`1px solid rgba(201,169,110,0.3)`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  cursor:"pointer",
+                }}>
+                  <span style={{fontSize:"1.4rem",marginLeft:4}}>▶</span>
+                </div>
+                <p style={{color:"rgba(255,255,255,0.25)",fontSize:"0.78rem",margin:0,letterSpacing:"0.05em"}}>
+                  Video coming soon
+                </p>
               </div>
             </div>
 

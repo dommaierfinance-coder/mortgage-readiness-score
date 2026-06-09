@@ -375,26 +375,19 @@ export default function MortgageReadiness(){
                 borderRadius:6,
                 overflow:"hidden",
                 border:`1px solid ${BORDER}`,
-                background:"#111",
                 aspectRatio:"16/9",
-                display:"flex",
-                flexDirection:"column",
-                alignItems:"center",
-                justifyContent:"center",
-                gap:"0.75rem",
+                position:"relative",
               }}>
-                <div style={{
-                  width:56,height:56,borderRadius:"50%",
-                  background:`rgba(201,169,110,0.1)`,
-                  border:`1px solid rgba(201,169,110,0.3)`,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  cursor:"pointer",
-                }}>
-                  <span style={{fontSize:"1.4rem",marginLeft:4}}>▶</span>
-                </div>
-                <p style={{color:"rgba(255,255,255,0.25)",fontSize:"0.78rem",margin:0,letterSpacing:"0.05em"}}>
-                  Video coming soon
-                </p>
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src="https://www.youtube.com/embed/8ZHRhtunhjY"
+                  title="A Message From Dom"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{position:"absolute",top:0,left:0,width:"100%",height:"100%"}}
+                />
               </div>
             </div>
 

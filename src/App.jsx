@@ -182,7 +182,104 @@ function AdminView({onClose}){
   );
 }
 
+const WEBHOOK = "https://hook.us2.make.com/nn5375ypqb8ripym0us9kmmk3b98p9qw";
+
+function PrivacyPolicy({onClose}){
+  return(
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Inter',-apple-system,sans-serif",color:"#fff",padding:"2rem 1rem"}}>
+      <div style={{maxWidth:680,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"2rem",paddingBottom:"1rem",borderBottom:`1px solid ${BORDER}`}}>
+          <div style={{fontSize:"1rem",fontWeight:700}}>Dom Maier <em style={{color:ACCENT,fontStyle:"italic"}}>Finance</em></div>
+          <button onClick={onClose} style={{padding:"0.5rem 1rem",borderRadius:4,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:"rgba(255,255,255,0.4)",fontSize:"0.82rem",fontFamily:"inherit"}}>Back</button>
+        </div>
+        <h1 style={{fontSize:"1.6rem",fontWeight:700,marginBottom:"0.5rem"}}>Privacy Policy</h1>
+        <p style={{color:"rgba(255,255,255,0.4)",fontSize:"0.8rem",marginBottom:"2rem"}}>Last updated: June 9, 2026</p>
+        {[
+          ["1. Who We Are","Dom Maier Finance operates dommaierfinance.com and mortgage.dommaierfinance.com, providing financial education, credit coaching resources, and mortgage readiness tools."],
+          ["2. Information We Collect","When you use our Mortgage Readiness Score tool, we collect your name, email address, phone number, and quiz responses for the purpose of generating your score and providing coaching services."],
+          ["3. How We Use Your Information","We use your information to deliver your mortgage readiness results, contact you about consultation requests, send follow-up educational content, and connect you with relevant financial products and services."],
+          ["4. Sharing Your Information","We may share your information with third-party partners including mortgage lenders, debt consolidation companies, credit repair services, and other financial service providers who may contact you regarding their products and services. By submitting your information, you consent to this sharing."],
+          ["5. TCPA Consent","By submitting your name, email, and phone number, you expressly consent to receive calls, text messages, and emails from Dom Maier Finance and its partners at the number and email provided, including calls made using an automatic telephone dialing system or pre-recorded voice. Consent is not a condition of purchase. Message and data rates may apply. You may opt out at any time by replying STOP to any text message or contacting us directly."],
+          ["6. Your Rights","You may request to access, correct, or delete your personal information at any time by contacting us at dommaier.finance@gmail.com."],
+          ["7. Data Security","We implement reasonable security measures to protect your information. However, no method of transmission over the internet is 100% secure."],
+          ["8. Contact Us","Questions? Contact us at dommaier.finance@gmail.com or visit dommaierfinance.com."],
+        ].map(([title,body])=>(
+          <div key={title} style={{marginBottom:"1.5rem"}}>
+            <h2 style={{fontSize:"0.95rem",fontWeight:700,color:"#fff",marginBottom:"0.5rem"}}>{title}</h2>
+            <p style={{color:"rgba(255,255,255,0.55)",fontSize:"0.88rem",lineHeight:1.7,margin:0}}>{body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LeadGate({onComplete}){
+  const [form,setForm]=useState({name:"",email:"",phone:""});
+  const [error,setError]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [showPrivacy,setShowPrivacy]=useState(false);
+  if(showPrivacy) return <PrivacyPolicy onClose={()=>setShowPrivacy(false)}/>;
+  async function handleSubmit(){
+    if(!form.name.trim()||!form.email.trim()||!form.phone.trim()){setError("Please fill in all fields.");return;}
+    if(!/[^\s@]+@[^\s@]+\.[^\s@]+/.test(form.email)){setError("Please enter a valid email address.");return;}
+    setError("");setLoading(true);
+    try{
+      await fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:form.name.trim(),email:form.email.trim(),phone:form.phone.trim(),score:0,score_cat:"opt-in",submittedAt:new Date().toISOString(),message:`New opt-in: ${form.name.trim()} ${form.phone.trim()} ${form.email.trim()}`})});
+    }catch(e){}
+    setLoading(false);onComplete(form);
+  }
+  return(
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Inter',-apple-system,sans-serif",color:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem 1rem",backgroundImage:"radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.06) 0%, transparent 60%)"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;600&display=swap');*{box-sizing:border-box;}input::placeholder{color:rgba(255,255,255,0.2);}.gi:focus{border-color:rgba(201,169,110,0.5)!important;outline:none;}`}</style>
+      <div style={{width:"100%",maxWidth:480}}>
+        <div style={{textAlign:"center",marginBottom:"2.5rem"}}>
+          <div style={{fontSize:"0.9rem",fontWeight:700,marginBottom:"1.5rem"}}>Dom Maier <em style={{color:ACCENT,fontStyle:"italic"}}>Finance</em></div>
+          <div style={{display:"inline-block",padding:"0.3rem 1rem",borderRadius:3,background:"rgba(201,169,110,0.1)",border:"1px solid rgba(201,169,110,0.25)",color:ACCENT,fontSize:"0.7rem",fontWeight:600,letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"1rem"}}>Free Assessment</div>
+          <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(1.8rem,5vw,2.4rem)",fontWeight:700,lineHeight:1.15,margin:"0 0 1rem",letterSpacing:"-0.02em"}}>
+            Are You <em style={{fontStyle:"italic",color:ACCENT}}>Mortgage Ready?</em>
+          </h1>
+          <p style={{color:"rgba(255,255,255,0.45)",fontSize:"0.95rem",lineHeight:1.6,margin:0}}>
+            Take our free 8-question assessment and find out exactly where you stand — and what's blocking you from getting approved.
+          </p>
+        </div>
+        <div style={{display:"flex",justifyContent:"center",gap:"1.5rem",marginBottom:"2rem",flexWrap:"wrap"}}>
+          {["Takes 2 minutes","100% Free","No credit pull"].map(b=>(
+            <div key={b} style={{display:"flex",alignItems:"center",gap:"0.4rem",fontSize:"0.78rem",color:"rgba(255,255,255,0.4)"}}>
+              <span style={{color:ACCENT}}>✓</span> {b}
+            </div>
+          ))}
+        </div>
+        <div style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${BORDER}`,borderRadius:8,padding:"2rem"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:"1rem",marginBottom:"1.25rem"}}>
+            {[{key:"name",label:"Full Name",placeholder:"Jane Smith",type:"text"},{key:"email",label:"Email Address",placeholder:"jane@example.com",type:"email"},{key:"phone",label:"Phone Number",placeholder:"(555) 000-0000",type:"tel"}].map(field=>(
+              <div key={field.key}>
+                <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.35rem"}}>{field.label}</div>
+                <input className="gi" type={field.type} placeholder={field.placeholder} value={form[field.key]}
+                  onChange={e=>setForm(prev=>({...prev,[field.key]:e.target.value}))}
+                  onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+                  style={{width:"100%",padding:"0.75rem 1rem",background:"rgba(255,255,255,0.03)",border:`1px solid ${BORDER}`,borderRadius:4,color:"#fff",fontSize:"0.9rem",fontFamily:"inherit"}}/>
+              </div>
+            ))}
+          </div>
+          {error&&<p style={{color:"#ef4444",fontSize:"0.8rem",marginBottom:"0.75rem"}}>{error}</p>}
+          <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"0.9rem",borderRadius:4,cursor:"pointer",background:ACCENT,border:"none",color:"#0a0a0a",fontWeight:700,fontSize:"0.95rem",fontFamily:"inherit",letterSpacing:"0.08em",textTransform:"uppercase",opacity:loading?0.7:1}}>
+            {loading?"Loading...":"Get My Free Score →"}
+          </button>
+          <p style={{color:"rgba(255,255,255,0.2)",fontSize:"0.68rem",lineHeight:1.5,marginTop:"1rem",textAlign:"center"}}>
+            By submitting this form you consent to receive calls, texts, and emails from Dom Maier Finance and its partners regarding financial products and services. Consent is not required to purchase. Msg & data rates may apply.{" "}
+            <span onClick={()=>setShowPrivacy(true)} style={{color:ACCENT,cursor:"pointer",textDecoration:"underline"}}>Privacy Policy</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MortgageReadiness(){
+  const [gateComplete,setGateComplete]=useState(false);
+  const [leadInfo,setLeadInfo]=useState(null);
   const [step,setStep]=useState(0);
   const [answers,setAnswers]=useState({});
   const [result,setResult]=useState(null);
@@ -195,6 +292,8 @@ export default function MortgageReadiness(){
 
 
 
+
+  if(!gateComplete) return <LeadGate onComplete={(info)=>{setLeadInfo(info);setGateComplete(true);}}/>;
 
   const current=STEPS[step];
   const progress=(step/STEPS.length)*100;

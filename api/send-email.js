@@ -1,3 +1,42 @@
+
+async function addToKlaviyo(name, email, phone, score, scoreCat) {
+  const firstName = name.split(' ')[0];
+  const lastName = name.split(' ').slice(1).join(' ') || '';
+  try {
+    await fetch('https://a.klaviyo.com/client/subscriptions/?company_id=YfGTZv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'revision': '2023-12-15' },
+      body: JSON.stringify({
+        data: {
+          type: 'subscription',
+          attributes: {
+            profile: {
+              data: {
+                type: 'profile',
+                attributes: {
+                  email,
+                  phone_number: phone,
+                  first_name: firstName,
+                  last_name: lastName,
+                  properties: {
+                    mortgage_score: score,
+                    score_category: scoreCat,
+                    source: scoreCat === 'facebook-lead' ? 'Facebook Ad' : 'Mortgage Quiz',
+                  }
+                }
+              }
+            }
+          },
+          relationships: {
+            list: { data: { type: 'list', id: 'XFE7AE' } }
+          }
+        }
+      })
+    });
+  } catch(e) {
+    console.error('Klaviyo error:', e);
+  }
+}
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -47,6 +86,9 @@ export default async function handler(req, res) {
         }),
       });
     }
+
+    // Add to Klaviyo
+    await addToKlaviyo(name, email, phone, score || 0, score_cat || 'unknown');
 
     return res.status(200).json({ success: true });
   } catch (error) {

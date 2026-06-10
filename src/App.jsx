@@ -228,7 +228,7 @@ export default function MortgageReadiness(){
     if(!formData.name.trim()||!formData.email.trim()||!formData.phone.trim()){setFormError("Please fill in all fields.");return;}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)){setFormError("Please enter a valid email address.");return;}
     setFormError("");
-    // Send to Make.com webhook
+    // Send via Resend
     const lead={
       name:formData.name.trim(),
       email:formData.email.trim(),
@@ -238,18 +238,10 @@ export default function MortgageReadiness(){
       submittedAt:new Date().toISOString(),
     };
     try{
-      await fetch("https://hook.us2.make.com/nn5375ypqb8ripym0us9kmmk3b98p9qw",{
+      await fetch("/api/send-email",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          name:lead.name,
-          email:lead.email,
-          phone:lead.phone,
-          score:lead.score,
-          score_cat:lead.score_cat,
-          submitted_at:lead.submittedAt,
-          message:`New mortgage readiness lead: ${lead.name} scored ${lead.score}/100. Call ${lead.phone} or email ${lead.email}`,
-        }),
+        body:JSON.stringify(lead),
       });
     }catch(e){}
     setFormSubmitted(true);

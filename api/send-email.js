@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       headers: { 'Authorization': `Bearer re_MWK8F8E3_4bbJ1E7afnguC4FNaoMrhg1E`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'Dom Maier Finance <notifications@dommaierfinance.com>',
-        to: 'dommaier.finance@gmail.com',
+        to: 'dom@dommaierfinance.com',
         subject: `New ${isFacebookLead ? 'Facebook ' : ''}Lead — ${name}`,
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0a0a0a;color:#fff;border-radius:8px;">
           <h2 style="color:#C9A96E;margin-bottom:16px;">New ${isFacebookLead ? 'Facebook ' : ''}Lead</h2>

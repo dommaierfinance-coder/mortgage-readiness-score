@@ -192,6 +192,10 @@ export default function MortgageReadiness(){
   const [formData,setFormData]=useState({name:"",email:"",phone:""});
   const [formSubmitted,setFormSubmitted]=useState(false);
   const [formError,setFormError]=useState("");
+  const [gateData,setGateData]=useState({name:"",email:"",phone:""});
+  const [gateError,setGateError]=useState("");
+  const [gateUnlocked,setGateUnlocked]=useState(false);
+  const [gateLoading,setGateLoading]=useState(false);
 
 
 
@@ -222,6 +226,29 @@ export default function MortgageReadiness(){
   function restart(){
     setStep(0);setAnswers({});setResult(null);setAiCommentary(null);setAiLoading(false);
     setShowForm(false);setFormData({name:"",email:"",phone:""});setFormSubmitted(false);setFormError("");
+  }
+
+  async function handleGateSubmit(){
+    if(!gateData.name.trim()||!gateData.email.trim()||!gateData.phone.trim()){setGateError("Please fill in all fields.");return;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gateData.email)){setGateError("Please enter a valid email address.");return;}
+    setGateError("");
+    setGateLoading(true);
+    try{
+      await fetch("/api/send-email",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          name:gateData.name.trim(),
+          email:gateData.email.trim(),
+          phone:gateData.phone.trim(),
+          score:0,
+          score_cat:"quiz-start",
+          submittedAt:new Date().toISOString(),
+        }),
+      });
+    }catch(e){}
+    setGateLoading(false);
+    setGateUnlocked(true);
   }
 
   async function handleFormSubmit(){
@@ -276,8 +303,31 @@ export default function MortgageReadiness(){
       <div style={{width:"100%",maxWidth:680,border:`1px solid ${BORDER}`,borderRadius:8,overflow:"hidden"}}>
         {!result&&<div style={{height:2,background:"rgba(255,255,255,0.05)"}}><div style={{height:"100%",background:ACCENT,width:`${progress}%`,transition:"width 0.4s ease"}}/></div>}
 
+        {/* Lead Gate */}
+        {!gateUnlocked&&(
+          <div style={{padding:"2rem 2rem 2.5rem"}}>
+            <div style={{fontSize:"0.65rem",color:ACCENT,letterSpacing:"0.2em",textTransform:"uppercase",fontWeight:600,marginBottom:"0.75rem"}}>Get Your Free Score</div>
+            <h2 style={{fontSize:"1.1rem",fontWeight:600,color:"#fff",marginBottom:"0.5rem",lineHeight:1.4}}>Where should we send your results?</h2>
+            <p style={{fontSize:"0.82rem",color:"rgba(255,255,255,0.35)",marginBottom:"1.5rem",lineHeight:1.6}}>Enter your info below to unlock your personalized Mortgage Readiness Score.</p>
+            <div style={{display:"flex",flexDirection:"column",gap:"0.75rem",marginBottom:"1rem"}}>
+              {[{key:"name",label:"Full Name",placeholder:"Jane Smith",type:"text"},{key:"email",label:"Email Address",placeholder:"jane@example.com",type:"email"},{key:"phone",label:"Phone Number",placeholder:"(555) 000-0000",type:"tel"}].map(field=>(
+                <div key={field.key}>
+                  <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"0.35rem"}}>{field.label}</div>
+                  <input type={field.type} placeholder={field.placeholder} value={gateData[field.key]} onChange={e=>setGateData(p=>({...p,[field.key]:e.target.value}))}
+                    style={{width:"100%",padding:"0.75rem 1rem",background:"rgba(255,255,255,0.03)",border:`1px solid ${BORDER}`,borderRadius:4,color:"#fff",fontSize:"0.9rem",fontFamily:"inherit",outline:"none"}}/>
+                </div>
+              ))}
+            </div>
+            {gateError&&<p style={{color:"#ef4444",fontSize:"0.8rem",marginBottom:"0.75rem"}}>{gateError}</p>}
+            <button onClick={handleGateSubmit} disabled={gateLoading} style={{width:"100%",padding:"0.875rem",borderRadius:4,cursor:"pointer",background:ACCENT,border:"none",color:"#0a0a0a",fontWeight:700,fontSize:"0.9rem",fontFamily:"inherit",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+              {gateLoading?"Loading...":"Get My Score →"}
+            </button>
+            <p style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.2)",textAlign:"center",marginTop:"1rem"}}>Free assessment. No credit card required.</p>
+          </div>
+        )}
+
         {/* Quiz */}
-        {!result&&(
+        {gateUnlocked&&!result&&(
           <div style={{padding:"2rem 2rem 2.5rem"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.8rem"}}>
               <span style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.25)",letterSpacing:"0.12em",textTransform:"uppercase"}}>{current.label}</span>

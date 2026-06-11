@@ -42,6 +42,7 @@ export default async function handler(req, res) {
 
   const { name, email, phone, score, score_cat, submittedAt } = req.body;
   const isFacebookLead = score_cat === 'facebook-lead';
+  const isQuizStart = score_cat === 'quiz-start';
 
   try {
     // Email 1 — Notify Dom
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'Dom Maier Finance <notifications@dommaierfinance.com>',
         to: 'dom@dommaierfinance.com',
-        subject: `New ${isFacebookLead ? 'Facebook ' : ''}Lead — ${name}`,
+        subject: `New ${isFacebookLead ? 'Facebook ' : isQuizStart ? 'Quiz Start — ' : ''}Lead — ${name}`,
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0a0a0a;color:#fff;border-radius:8px;">
           <h2 style="color:#C9A96E;margin-bottom:16px;">New ${isFacebookLead ? 'Facebook ' : ''}Lead</h2>
           <table style="width:100%;border-collapse:collapse;">
@@ -66,8 +67,8 @@ export default async function handler(req, res) {
       }),
     });
 
-    // Email 2 — Customer auto-reply (quiz only, not Facebook leads)
-    if (!isFacebookLead && email) {
+    // Email 2 — Customer auto-reply (quiz only, not Facebook leads or quiz-start)
+    if (!isFacebookLead && !isQuizStart && email) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer re_MWK8F8E3_4bbJ1E7afnguC4FNaoMrhg1E`, 'Content-Type': 'application/json' },

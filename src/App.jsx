@@ -383,6 +383,25 @@ export default function MortgageReadiness(){
               </div>
             </div>
 
+            {/* Value Prop */}
+            <div style={{padding:"1.5rem 2rem",borderBottom:`1px solid ${BORDER}`}}>
+              <p style={{color:"#fff",fontWeight:700,fontSize:"0.95rem",lineHeight:1.6,marginBottom:"1rem"}}>
+                Get a personalized breakdown of your score and a clear strategy to become mortgage-ready — straight from Dom.
+              </p>
+              <div style={{display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+                {[
+                  "You don't need to pay an expensive credit repair agency to fix this.",
+                  "What you need is the full picture — and a real strategy tailored to your situation.",
+                  "With the right plan, higher scores and mortgage approval could be months away, not years.",
+                ].map((point,i)=>(
+                  <div key={i} style={{display:"flex",gap:"0.65rem",alignItems:"flex-start"}}>
+                    <span style={{color:ACCENT,fontWeight:700,fontSize:"0.9rem",marginTop:"0.05rem"}}>—</span>
+                    <p style={{color:"rgba(255,255,255,0.6)",fontSize:"0.88rem",lineHeight:1.6,margin:0}}>{point}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* CTA */}
             <div style={{padding:"1.75rem 2rem"}}>
               <p style={{color:"rgba(255,255,255,0.5)",fontSize:"0.88rem",marginBottom:"1.25rem",lineHeight:1.6}}>{result.upsell_hook}</p>

@@ -373,7 +373,7 @@ export default function MortgageReadiness(){
                 <iframe
                   width="100%"
                   height="100%"
-                  src="https://player.vimeo.com/video/1200392453"
+                  src="https://www.youtube.com/embed/8ZHRhtunhjY"
                   title="A Message From Dom"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

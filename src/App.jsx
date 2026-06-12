@@ -409,7 +409,7 @@ export default function MortgageReadiness(){
               {!showForm&&!formSubmitted&&(
                 <div style={{display:"flex",gap:"0.75rem",flexWrap:"wrap"}}>
                   <button style={{padding:"0.75rem 1.5rem",borderRadius:4,cursor:"pointer",background:ACCENT,border:"none",color:"#0a0a0a",fontWeight:700,fontSize:"0.88rem",fontFamily:"inherit",letterSpacing:"0.08em",textTransform:"uppercase"}} onClick={()=>setShowForm(true)}>
-                    Book a Consultation →
+                    Get My Strategy →
                   </button>
                   <button onClick={()=>window.open("https://app.dommaierfinance.com","_blank")} style={{padding:"0.75rem 1.5rem",borderRadius:4,cursor:"pointer",background:"transparent",border:`1px solid rgba(201,169,110,0.3)`,color:ACCENT,fontSize:"0.85rem",fontFamily:"inherit",letterSpacing:"0.05em"}}>
                     Try Debt Simulator

@@ -244,6 +244,7 @@ export default function MortgageReadiness(){
         body:JSON.stringify(lead),
       });
     }catch(e){}
+    if (window.fbq) fbq('track', 'Schedule');
     setFormSubmitted(true);
   }
 

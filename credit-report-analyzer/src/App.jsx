@@ -4,11 +4,13 @@ import Upload from "./components/Upload";
 import Dashboard from "./components/Dashboard";
 import { analyze } from "./lib/credit";
 import { recordSnapshot, loadHistory } from "./lib/storage";
+import { isUnlocked } from "./lib/license";
 
 export default function App() {
   const [report, setReport] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [history, setHistory] = useState([]);
+  const [unlocked, setUnlocked] = useState(() => isUnlocked());
 
   function handleAnalyzed(rep) {
     const a = analyze(rep);
@@ -55,7 +57,7 @@ export default function App() {
       </div>
 
       {analysis ? (
-        <Dashboard report={report} analysis={analysis} history={history} onRestart={restart} />
+        <Dashboard report={report} analysis={analysis} history={history} onRestart={restart} unlocked={unlocked} onUnlock={() => setUnlocked(true)} />
       ) : (
         <Upload onAnalyzed={handleAnalyzed} />
       )}

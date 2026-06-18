@@ -203,7 +203,9 @@ export default function MortgageReadiness(){
     const newAnswers={...answers,[current.id]:value};
     setAnswers(newAnswers);
     if(step<STEPS.length-1){setTimeout(()=>setStep(step+1),260);}
-    else{const r=calcFormulaResult(newAnswers);setResult(r);fetchAI(newAnswers,r);}
+    else{const r=calcFormulaResult(newAnswers);setResult(r);fetchAI(newAnswers,r);
+      if(window.gtag){window.gtag('event','quiz_complete',{score:r.score,score_cat:r.score_cat});}
+    }
   }
 
   async function fetchAI(data,r){
@@ -245,6 +247,7 @@ export default function MortgageReadiness(){
       });
     }catch(e){}
     if (window.fbq) fbq('track', 'Schedule');
+    if (window.gtag) window.gtag('event','generate_lead',{score:result?.score??0,score_cat:result?.score_cat??"unknown"});
     setFormSubmitted(true);
   }
 

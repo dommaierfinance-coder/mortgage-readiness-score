@@ -56,7 +56,7 @@ No API key handy? Click **"Try it with sample data"** on the upload screen — t
 | Variable | Used by | Required |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | `analyze`, `coach` | Yes (for real PDFs + coach) |
-| `GUMROAD_PRODUCT_ID` | `verify-license` | For the paywall — your Gumroad product ID |
+| `GUMROAD_PRODUCT_ID` | `verify-license` | For the paywall — your Gumroad product ID **or** permalink (the code after `gumroad.com/l/…`) |
 | `VITE_GUMROAD_URL` | Paywall buy button | For the paywall — your Gumroad checkout URL (build-time) |
 | `RESEND_API_KEY` | `lead` | Optional |
 | `LEAD_NOTIFY_TO` | `lead` | Optional (defaults to dom@…) |
@@ -68,7 +68,7 @@ No API key handy? Click **"Try it with sample data"** on the upload screen — t
 The action toolkit (paydown optimizer, simulator, dispute letters, AI coach, progress) is gated behind a one-time Gumroad purchase; the score, factor dashboard, negatives audit, roadmap, and education stay free.
 
 1. Create a Gumroad **product** → Settings → enable **"Generate a unique license key per sale."**
-2. Set **`GUMROAD_PRODUCT_ID`** (server env) to the product's ID, and **`VITE_GUMROAD_URL`** (build env) to its checkout URL.
+2. Set **`GUMROAD_PRODUCT_ID`** (server env) to the product's ID **or** its permalink (the code after `gumroad.com/l/…`), and **`VITE_GUMROAD_URL`** (build env) to its checkout URL.
 3. Buyers paste their license key into the in-app **Unlock** box; `api/verify-license.js` checks it against Gumroad's license API and unlocks the toolkit on that device.
 
 `VITE_GUMROAD_URL` is read at build time, so set it in Vercel before deploying (or redeploy after adding it).

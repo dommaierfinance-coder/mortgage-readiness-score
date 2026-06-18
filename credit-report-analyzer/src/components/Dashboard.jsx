@@ -7,21 +7,25 @@ import {
 } from "./sections";
 import Coach from "./Coach";
 import BookCall from "./BookCall";
+import Paywall from "./Paywall";
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "paydown", label: "Paydown Plan" },
-  { id: "simulator", label: "Simulator" },
+  { id: "paydown", label: "Paydown Plan", paid: true },
+  { id: "simulator", label: "Simulator", paid: true },
   { id: "negatives", label: "Negatives" },
-  { id: "letters", label: "Letters" },
+  { id: "letters", label: "Letters", paid: true },
   { id: "roadmap", label: "Roadmap" },
-  { id: "coach", label: "AI Coach" },
+  { id: "coach", label: "AI Coach", paid: true },
   { id: "learn", label: "Learn" },
-  { id: "progress", label: "Progress" },
+  { id: "progress", label: "Progress", paid: true },
 ];
 
-export default function Dashboard({ report, analysis, history, onRestart }) {
+export default function Dashboard({ report, analysis, history, onRestart, unlocked, onUnlock }) {
   const [tab, setTab] = useState("overview");
+
+  const active = TABS.find((t) => t.id === tab);
+  const showPaywall = active?.paid && !unlocked;
 
   return (
     <div style={{ width: "100%", maxWidth: 760, margin: "0 auto" }}>
@@ -35,21 +39,27 @@ export default function Dashboard({ report, analysis, history, onRestart }) {
               border: tab === t.id ? `1px solid rgba(201,169,110,0.4)` : `1px solid transparent`,
               color: tab === t.id ? ACCENT : "rgba(255,255,255,0.5)", transition: "all 0.15s ease",
             }}>
-            {t.label}
+            {t.label}{t.paid && !unlocked ? " 🔒" : ""}
           </button>
         ))}
       </div>
 
       <div style={{ minHeight: 360 }}>
-        {tab === "overview" && <ScoreFactors analysis={analysis} />}
-        {tab === "paydown" && <PaydownOptimizer report={report} />}
-        {tab === "simulator" && <Simulator report={report} />}
-        {tab === "negatives" && <Negatives analysis={analysis} />}
-        {tab === "letters" && <LetterGenerator report={report} analysis={analysis} />}
-        {tab === "roadmap" && <Roadmap analysis={analysis} />}
-        {tab === "coach" && <Coach report={report} analysis={analysis} onBookCall={() => setTab("overview")} />}
-        {tab === "learn" && <Education />}
-        {tab === "progress" && <Progress history={history} />}
+        {showPaywall ? (
+          <Paywall feature={active.label} onUnlock={onUnlock} />
+        ) : (
+          <>
+            {tab === "overview" && <ScoreFactors analysis={analysis} />}
+            {tab === "paydown" && <PaydownOptimizer report={report} />}
+            {tab === "simulator" && <Simulator report={report} />}
+            {tab === "negatives" && <Negatives analysis={analysis} />}
+            {tab === "letters" && <LetterGenerator report={report} analysis={analysis} />}
+            {tab === "roadmap" && <Roadmap analysis={analysis} />}
+            {tab === "coach" && <Coach report={report} analysis={analysis} onBookCall={() => setTab("overview")} />}
+            {tab === "learn" && <Education />}
+            {tab === "progress" && <Progress history={history} />}
+          </>
+        )}
       </div>
 
       {(tab === "overview" || tab === "roadmap") && (

@@ -17,9 +17,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ valid: false, error: "Please enter your license key." });
   }
 
-  try {
+  // Accept either a Gumroad product_id or a product permalink (the code after
+  // gumroad.com/l/…), so setup works whichever identifier the seller grabs.
+  async function verifyWith(field) {
     const params = new URLSearchParams({
-      product_id: productId,
+      [field]: productId,
       license_key: String(licenseKey).trim(),
       increment_uses_count: "false", // re-verifying shouldn't inflate the use count
     });
@@ -28,7 +30,12 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params,
     });
-    const data = await gr.json();
+    return gr.json();
+  }
+
+  try {
+    let data = await verifyWith("product_id");
+    if (!data.success) data = await verifyWith("product_permalink");
 
     if (!data.success) {
       return res.status(200).json({ valid: false, error: "That license key wasn't found. Double-check it and try again." });

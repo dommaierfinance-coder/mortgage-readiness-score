@@ -47,7 +47,7 @@ export default function Dashboard({ report, analysis, history, onRestart }) {
         {tab === "negatives" && <Negatives analysis={analysis} />}
         {tab === "letters" && <LetterGenerator report={report} analysis={analysis} />}
         {tab === "roadmap" && <Roadmap analysis={analysis} />}
-        {tab === "coach" && <Coach report={report} analysis={analysis} />}
+        {tab === "coach" && <Coach report={report} analysis={analysis} onBookCall={() => setTab("overview")} />}
         {tab === "learn" && <Education />}
         {tab === "progress" && <Progress history={history} />}
       </div>

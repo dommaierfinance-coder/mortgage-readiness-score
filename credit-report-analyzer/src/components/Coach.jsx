@@ -26,7 +26,9 @@ function summarize(report, analysis) {
   };
 }
 
-export default function Coach({ report, analysis }) {
+const COACH_LIMIT = 10; // free questions per session before nudging to book a call
+
+export default function Coach({ report, analysis, onBookCall }) {
   const [messages, setMessages] = useState([
     { role: "assistant", text: "Hi — I've reviewed your report. Ask me anything about your score, what to pay first, or how to get mortgage-ready." },
   ]);
@@ -34,11 +36,15 @@ export default function Coach({ report, analysis }) {
   const [busy, setBusy] = useState(false);
   const endRef = useRef(null);
 
+  const used = messages.filter((m) => m.role === "user").length;
+  const remaining = Math.max(0, COACH_LIMIT - used);
+  const capped = remaining === 0;
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
 
   async function send(text) {
     const q = (text ?? input).trim();
-    if (!q || busy) return;
+    if (!q || busy || capped) return;
     setInput("");
     const next = [...messages, { role: "user", text: q }];
     setMessages(next);
@@ -89,14 +95,30 @@ export default function Coach({ report, analysis }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "0.6rem", padding: "0.85rem 1rem", borderTop: `1px solid ${BORDER}` }}>
-          <input
-            value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ask about your report…"
-            style={{ flex: 1, padding: "0.7rem 1rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6, color: "#fff", fontSize: "0.88rem", fontFamily: "inherit", outline: "none" }}
-          />
-          <Button onClick={() => send()} disabled={busy} style={{ padding: "0.7rem 1.2rem" }}>Send</Button>
-        </div>
+        {capped ? (
+          <div style={{ padding: "1rem", borderTop: `1px solid ${BORDER}`, textAlign: "center" }}>
+            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem", lineHeight: 1.55, margin: "0 0 0.75rem" }}>
+              You've used your {COACH_LIMIT} free coaching questions for this session. For deeper, personalized help, book a free call with Dom.
+            </p>
+            <Button onClick={() => onBookCall?.()} style={{ padding: "0.7rem 1.4rem" }}>Book a free call with Dom →</Button>
+          </div>
+        ) : (
+          <div style={{ borderTop: `1px solid ${BORDER}` }}>
+            {remaining <= 3 && (
+              <div style={{ padding: "0.4rem 1rem 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", textAlign: "right" }}>
+                {remaining} free question{remaining === 1 ? "" : "s"} left this session
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "0.6rem", padding: "0.85rem 1rem" }}>
+              <input
+                value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Ask about your report…"
+                style={{ flex: 1, padding: "0.7rem 1rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6, color: "#fff", fontSize: "0.88rem", fontFamily: "inherit", outline: "none" }}
+              />
+              <Button onClick={() => send()} disabled={busy} style={{ padding: "0.7rem 1.2rem" }}>Send</Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

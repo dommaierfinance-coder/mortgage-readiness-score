@@ -77,9 +77,10 @@ function addYears(dateStr, years) {
 const fmtDate = (d) =>
   d ? d.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—";
 
-// Builds the negatives & dispute audit: collections, charge-offs, late payments,
-// public records — each with a recommended action, a 7-year fall-off date, and a
-// dispute flag when an item is already past the date it legally should drop off.
+// Builds an educational summary of negative items: collections, charge-offs,
+// late payments, public records — each with a plain-language explanation, the
+// typical 7-year fall-off date, and a flag when an item already appears past the
+// point where it usually ages off. Informational only; no instructions to act.
 export function negativesAudit(report) {
   const now = new Date();
   const items = [];
@@ -93,14 +94,14 @@ export function negativesAudit(report) {
       creditor: c.agency || c.originalCreditor || "Collection account",
       detail: c.originalCreditor ? `Originally ${c.originalCreditor}` : "",
       balance: num(c.balance),
-      severity: aged ? "dispute" : c.status === "paid" ? "medium" : "high",
+      severity: aged ? "aged" : c.status === "paid" ? "medium" : "high",
       falloff: fmtDate(falloff),
       aged,
       action: aged
-        ? "Past the 7-year reporting limit — dispute for removal with all three bureaus."
+        ? "This item appears past the typical 7-year reporting window, after which negative items generally age off a report on their own."
         : c.status === "paid"
-        ? "Already paid. Send a goodwill deletion request asking the bureau to remove it."
-        : "Negotiate a 'pay-for-delete' in writing before paying, or dispute if the debt isn't yours.",
+        ? "This collection is marked paid. Newer scoring models (FICO 9, VantageScore 3.0+) generally ignore paid collections."
+        : "Unpaid collections are one factor that can affect scores. How to handle a collection is a personal financial and legal decision — a qualified professional can explain your options.",
     });
   }
 
@@ -114,12 +115,12 @@ export function negativesAudit(report) {
         creditor: a.creditor || "Account",
         detail: "Account charged off by the lender",
         balance: num(a.balance) || num(a.pastDue),
-        severity: aged ? "dispute" : "high",
+        severity: aged ? "aged" : "high",
         falloff: fmtDate(falloff),
         aged,
         action: aged
-          ? "Past the 7-year limit — dispute for removal."
-          : "Request a pay-for-delete or settlement-for-deletion in writing.",
+          ? "This item appears past the typical 7-year reporting window, after which such items generally age off on their own."
+          : "A charge-off is a significant negative item. How to address it is a personal financial and legal decision — a qualified professional can explain your options.",
       });
     }
     const lates = num(a.late90) + num(a.late60) + num(a.late30);
@@ -133,7 +134,7 @@ export function negativesAudit(report) {
         falloff: "—",
         aged: false,
         action:
-          "Send a goodwill letter asking the creditor to remove the late marks — most effective when the account is now current and otherwise in good standing.",
+          "Payment history is the largest scoring factor. Late marks generally carry less weight as they age and typically fall off over time; consistent on-time payments going forward are widely cited as helpful.",
       });
     }
   }
@@ -148,11 +149,11 @@ export function negativesAudit(report) {
       severity: "high",
       falloff: fmtDate(falloff),
       aged: falloff && falloff < now,
-      action: "Verify accuracy — public records are frequently misreported. Dispute any errors.",
+      action: "Public records can affect scoring. It's worth reviewing this entry for accuracy; a qualified professional can explain your options if something looks incorrect.",
     });
   }
 
-  const order = { dispute: 0, high: 1, medium: 2 };
+  const order = { aged: 0, high: 1, medium: 2 };
   items.sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
   return items;
 }
@@ -288,7 +289,7 @@ export function anchoredScore(report, overrides = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Fastest-paydown optimizer
+// Paydown optimizer (educational illustration)
 // ---------------------------------------------------------------------------
 
 function nextThresholdBelow(util) {
@@ -296,7 +297,7 @@ function nextThresholdBelow(util) {
   return null;
 }
 
-// Builds the fastest-paydown plan in two phases:
+// Builds the paydown illustration in two phases:
 //   1. Greedy allocation — repeatedly fund the threshold-crossing (across all
 //      cards) with the best score-gain-per-dollar until budget runs out (or,
 //      with no budget, until every card hits $0). This decides how much each
@@ -384,34 +385,34 @@ export function roadmap(report) {
   const soon = [];
   const ongoing = [];
 
-  // Disputes are the fastest, lowest-effort wins.
-  const disputable = negs.filter((n) => n.aged);
-  if (disputable.length)
-    now.push(`Dispute ${disputable.length} item(s) that are past the 7-year reporting limit — these should already be gone.`);
+  // Items past the typical 7-year window generally age off on their own.
+  const aged = negs.filter((n) => n.aged);
+  if (aged.length)
+    now.push(`${aged.length} item(s) appear past the typical 7-year reporting window — items like these generally age off on their own. Learn how reporting timelines work.`);
 
   if (u.maxCard > 0.3) {
     const overCards = u.cards.filter((c) => c.util > 0.3).length;
-    now.push(`Pay down ${overCards} card(s) over 30% utilization — start with the paydown plan, which targets the fastest score gains first.`);
+    now.push(`${overCards} card(s) are over 30% utilization. Utilization is one factor that can affect your score — the paydown view illustrates how lowering balances relates to your estimate.`);
   }
 
   const recentLates = (report.accounts || []).some((a) => num(a.late30) + num(a.late60) + num(a.late90) > 0);
-  if (recentLates) now.push("Set every account to autopay so you never add another late payment — payment history is 35% of your score.");
+  if (recentLates) now.push("On-time payments are widely cited as important — payment history is the largest scoring factor (~35%). Many people use autopay to help avoid missed due dates.");
 
   const unpaidColl = negs.filter((n) => n.kind === "Collection" && n.severity === "high");
   if (unpaidColl.length)
-    soon.push(`Negotiate pay-for-delete on ${unpaidColl.length} open collection(s) — get the deletion agreement in writing before you pay.`);
+    soon.push(`You have ${unpaidColl.length} open collection(s). How to handle a collection is a personal financial and legal decision — a qualified professional can explain your options.`);
 
   if (u.aggregate > 0.1 && u.aggregate <= 0.3)
-    soon.push("Push overall utilization under 10% — the last few points before applying for a mortgage are worth real score points.");
+    soon.push("Overall utilization under 10% is often cited as a helpful reference point — something to understand as you plan toward a mortgage.");
 
   if (!hasInstallment && hasRevolving)
-    soon.push("Consider a small credit-builder loan to add an installment account — credit mix is 10% of your score.");
+    soon.push("Credit mix is about 10% of a score; an installment account (such as a credit-builder loan) is one type some people learn about.");
 
-  ongoing.push("Keep your oldest accounts open and active — closing them shortens your credit history.");
-  if (inq.scoredCount >= 2) ongoing.push("Avoid new credit applications for now — recent inquiries are still weighing on your score.");
-  ongoing.push("Re-pull and re-upload your report in 30–45 days to track progress and confirm changes posted.");
+  ongoing.push("Length of credit history is ~15% of a score, so keeping older accounts open is commonly discussed.");
+  if (inq.scoredCount >= 2) ongoing.push("Recent hard inquiries are a small, temporary factor — they generally stop affecting a score after about 12 months.");
+  ongoing.push("Re-uploading a fresh report periodically lets you see how your numbers change over time.");
 
-  if (!now.length) now.push("No urgent red flags — keep balances low and payments on time.");
+  if (!now.length) now.push("No urgent items stand out — understanding your factors and keeping balances low and payments on time are widely cited habits.");
   return { now, soon, ongoing };
 }
 

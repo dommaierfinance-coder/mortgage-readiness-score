@@ -7,7 +7,6 @@ import { Card, SectionTitle, Button, Pill, Bar, ScoreDial } from "./ui";
 import {
   paydownPlan, scoreFactors, utilization, anchoredScore,
 } from "../lib/credit";
-import { LETTER_TYPES, buildLetter } from "../lib/letters";
 
 const healthColor = (h) => (h >= 0.8 ? GREEN : h >= 0.55 ? ACCENT : h >= 0.35 ? AMBER : RED);
 
@@ -45,7 +44,7 @@ export function ScoreFactors({ analysis }) {
 }
 
 // ---------------------------------------------------------------------------
-// Fastest-paydown optimizer
+// Paydown optimizer (educational illustration)
 // ---------------------------------------------------------------------------
 export function PaydownOptimizer({ report }) {
   const [budgetStr, setBudgetStr] = useState("");
@@ -56,9 +55,9 @@ export function PaydownOptimizer({ report }) {
   return (
     <div>
       <SectionTitle
-        kicker="Fastest gains"
-        title="Pay down in this order"
-        sub="Credit utilization updates within one billing cycle, so it's the quickest lever. We rank each paydown by score-points-per-dollar and cross the thresholds (90% → 50% → 30% → 10% → $0) that actually move your score."
+        kicker="Understand utilization"
+        title="How paydowns could affect utilization"
+        sub="Credit utilization is one factor that recalculates each billing cycle. This illustration ranks paydowns by estimated points-per-dollar across common reference points (90% → 50% → 30% → 10% → $0) to help you understand how lowering balances relates to your estimated score. It's educational, not a promise of results."
       />
 
       <Card style={{ padding: "1.25rem 1.5rem", marginBottom: "1rem" }}>
@@ -76,7 +75,7 @@ export function PaydownOptimizer({ report }) {
             />
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Projected score</div>
+            <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Estimated score</div>
             <div style={{ fontFamily: MONO, fontSize: "1.5rem", fontWeight: 700 }}>
               <span style={{ color: "rgba(255,255,255,0.4)" }}>{plan.startScore}</span>
               <span style={{ color: "rgba(255,255,255,0.3)", margin: "0 0.4rem" }}>→</span>
@@ -114,7 +113,7 @@ export function PaydownOptimizer({ report }) {
             </Card>
           ))}
           <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: "0.5rem 0 0", lineHeight: 1.6 }}>
-            Point estimates are directional, not a promise — actual movement depends on your full file. The <em>order</em> is what matters: it always front-loads the cheapest, highest-impact paydowns.
+            These point figures are rough, educational estimates — not a promise of results. Your actual score depends on your full credit file and the scoring model used.
           </p>
         </div>
       )}
@@ -153,7 +152,7 @@ export function Simulator({ report }) {
 
   return (
     <div>
-      <SectionTitle kicker="What-if" title="Model your moves" sub="Drag a balance down or remove a negative to see the estimated impact instantly. Great for deciding where your next dollar — or dispute — goes." />
+      <SectionTitle kicker="What-if" title="Model the factors" sub="Adjust a balance, or model a negative item no longer being on your report, to see how different factors could affect your estimated score. This is an educational illustration, not a prediction." />
 
       <Card style={{ padding: "1.5rem", marginBottom: "1rem", textAlign: "center" }}>
         <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "0.4rem" }}>Simulated score</div>
@@ -189,14 +188,14 @@ export function Simulator({ report }) {
 
       {(collections.length > 0 || chargeoffs.length > 0) && (
         <Card style={{ padding: "1.25rem 1.5rem" }}>
-          <div style={{ fontSize: "0.7rem", color: ACCENT, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: "1rem" }}>Remove a negative</div>
+          <div style={{ fontSize: "0.7rem", color: ACCENT, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: "1rem" }}>Model an item no longer on the report</div>
           {collections.map((c) => (
             <Toggle key={c.id} label={`Collection · ${c.agency || c.originalCreditor}`} checked={!!removed["coll:" + c.id]} onChange={(v) => setRemoved((p) => ({ ...p, ["coll:" + c.id]: v }))} />
           ))}
           {chargeoffs.map((a) => (
             <Toggle key={a.id} label={`Charge-off · ${a.creditor}`} checked={!!removed["chg:" + a.id]} onChange={(v) => setRemoved((p) => ({ ...p, ["chg:" + a.id]: v }))} />
           ))}
-          <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: "0.5rem 0 0" }}>Simulates a successful dispute, goodwill removal, or pay-for-delete.</p>
+          <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", margin: "0.5rem 0 0" }}>Illustrates how your estimate could look if an item were no longer on your report — for example, once it ages off over time.</p>
         </Card>
       )}
     </div>
@@ -215,15 +214,15 @@ function Toggle({ label, checked, onChange }) {
 }
 
 // ---------------------------------------------------------------------------
-// Negatives & dispute audit
+// Negative items (educational)
 // ---------------------------------------------------------------------------
 export function Negatives({ analysis }) {
   const items = analysis.negatives;
-  const sevColor = { dispute: RED, high: RED, medium: AMBER };
-  const sevLabel = { dispute: "Dispute now", high: "High impact", medium: "Medium" };
+  const sevColor = { aged: AMBER, high: RED, medium: AMBER };
+  const sevLabel = { aged: "Past 7-yr window", high: "High impact", medium: "Medium" };
   return (
     <div>
-      <SectionTitle kicker="Clean-up" title="Negatives & disputes" sub="Every derogatory item with a recommended action and the date it must legally fall off your report. Items already past that date are flagged to dispute immediately." />
+      <SectionTitle kicker="Understand" title="Negative items & how they age off" sub="Each negative item on your report, what it generally means for scoring, and the date it's typically expected to fall off. This is educational information to help you understand your report — not instructions to act." />
       {items.length === 0 ? (
         <Card style={{ padding: "1.5rem", textAlign: "center", color: GREEN }}>No negative items found — excellent. Keep payments on time and balances low.</Card>
       ) : (
@@ -239,7 +238,7 @@ export function Negatives({ analysis }) {
               </div>
               {it.detail && <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginBottom: "0.5rem" }}>{it.detail}{it.balance > 0 ? ` · ${fmtUSD(it.balance)}` : ""}</div>}
               <div style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.55 }}>{it.action}</div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", marginTop: "0.6rem" }}>Falls off: {it.falloff}{it.aged ? " — already past due to drop" : ""}</div>
+              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", marginTop: "0.6rem" }}>Typically falls off: {it.falloff}{it.aged ? " — generally past the point where it ages off" : ""}</div>
             </Card>
           ))}
         </div>
@@ -247,74 +246,6 @@ export function Negatives({ analysis }) {
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Dispute letter generator
-// ---------------------------------------------------------------------------
-export function LetterGenerator({ report, analysis }) {
-  const [type, setType] = useState("dispute");
-  const [itemIdx, setItemIdx] = useState(0);
-  const [sender, setSender] = useState({ name: "", address: "", cityStateZip: "", ssnLast4: "" });
-  const [copied, setCopied] = useState(false);
-
-  const items = analysis.negatives.length ? analysis.negatives : [{ creditor: "" }];
-  const letter = useMemo(() => buildLetter(type, items[itemIdx] || items[0], sender), [type, itemIdx, items, sender]);
-
-  const download = () => {
-    const blob = new Blob([letter], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${type}-letter.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-  const copy = () => { navigator.clipboard?.writeText(letter); setCopied(true); setTimeout(() => setCopied(false), 1500); };
-
-  const field = (key, label, ph) => (
-    <div style={{ flex: "1 1 180px" }}>
-      <label style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.3rem" }}>{label}</label>
-      <input value={sender[key]} onChange={(e) => setSender((p) => ({ ...p, [key]: e.target.value }))} placeholder={ph}
-        style={{ width: "100%", padding: "0.6rem 0.8rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 5, color: "#fff", fontSize: "0.85rem", fontFamily: "inherit", outline: "none" }} />
-    </div>
-  );
-
-  return (
-    <div>
-      <SectionTitle kicker="Take action" title="Generate a dispute letter" sub="Pre-filled and ready to print and mail. Fill in your details, pick the item and letter type, then download. Send by certified mail and keep copies." />
-      <Card style={{ padding: "1.25rem 1.5rem", marginBottom: "1rem" }}>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-          <div style={{ flex: "1 1 220px" }}>
-            <label style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.3rem" }}>Letter type</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} style={selectStyle}>
-              {LETTER_TYPES.map((t) => <option key={t.id} value={t.id} style={{ background: "#111" }}>{t.label}</option>)}
-            </select>
-          </div>
-          <div style={{ flex: "1 1 220px" }}>
-            <label style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "0.3rem" }}>Item</label>
-            <select value={itemIdx} onChange={(e) => setItemIdx(Number(e.target.value))} style={selectStyle}>
-              {items.map((it, i) => <option key={i} value={i} style={{ background: "#111" }}>{it.creditor || "Manual entry"}{it.kind ? ` (${it.kind})` : ""}</option>)}
-            </select>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          {field("name", "Your name", "Jane Smith")}
-          {field("address", "Street address", "123 Main St")}
-          {field("cityStateZip", "City, State ZIP", "Austin, TX 78701")}
-          {field("ssnLast4", "SSN last 4", "1234")}
-        </div>
-      </Card>
-
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", padding: "0.75rem 1rem", borderBottom: `1px solid ${BORDER}` }}>
-          <Button variant="muted" style={{ padding: "0.4rem 0.9rem", fontSize: "0.78rem" }} onClick={copy}>{copied ? "Copied ✓" : "Copy"}</Button>
-          <Button variant="ghost" style={{ padding: "0.4rem 0.9rem", fontSize: "0.78rem" }} onClick={download}>Download .txt</Button>
-        </div>
-        <pre style={{ margin: 0, padding: "1.25rem 1.5rem", whiteSpace: "pre-wrap", fontFamily: MONO, fontSize: "0.78rem", color: "rgba(255,255,255,0.7)", lineHeight: 1.6, maxHeight: 420, overflow: "auto" }}>{letter}</pre>
-      </Card>
-    </div>
-  );
-}
-const selectStyle = { width: "100%", padding: "0.6rem 0.8rem", background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 5, color: "#fff", fontSize: "0.85rem", fontFamily: "inherit", outline: "none" };
 
 // ---------------------------------------------------------------------------
 // Action roadmap
@@ -355,12 +286,12 @@ export function Roadmap({ analysis }) {
 // Education hub
 // ---------------------------------------------------------------------------
 const LESSONS = [
-  { q: "What actually moves my score the fastest?", a: "Credit utilization. It's ~30% of your FICO score and recalculates every billing cycle, so paying a card below 30% (then 10%) can lift your score within weeks — far faster than waiting for negatives to age off." },
-  { q: "What is the '30% rule' and the AZEO trick?", a: "Keep each card and your overall balance under 30% of the limit — under 10% is even better. 'AZEO' (All Zero Except One) means paying every card to $0 and leaving a tiny balance on just one before the statement closes. It's an advanced trick that can squeeze out a few extra points right before a mortgage application." },
-  { q: "Should I close old credit cards?", a: "Usually no. Length of credit history is 15% of your score, and closing your oldest card shortens it and lowers your total available credit (raising utilization). Keep old no-fee cards open and use them occasionally." },
-  { q: "Do paid collections still hurt me?", a: "On older scoring models, yes — but newer models (FICO 9, VantageScore 3.0+) ignore paid collections. The best outcome is deletion: negotiate 'pay-for-delete' in writing before paying, or send a goodwill letter if it's already paid." },
-  { q: "How long do negatives stay on my report?", a: "Most negatives — late payments, collections, charge-offs — fall off 7 years after the original delinquency date. Hard inquiries stop affecting your score after 12 months and drop off entirely after 2 years. Anything past these dates should be disputed for removal." },
-  { q: "How do I keep good credit once I've built it?", a: "Autopay everything (payment history is 35%), keep utilization low, don't close old accounts, and only apply for new credit when you need it. Re-check your report a few times a year for errors." },
+  { q: "Which factors affect my score the most?", a: "The two largest are payment history (~35%) and credit utilization (~30%). Utilization recalculates each billing cycle, so it's one of the factors most commonly associated with shorter-term changes, while a steady on-time payment history matters over the long run. The remaining factors are length of history, credit mix, and new credit." },
+  { q: "What is the '30% rule' and 'AZEO'?", a: "A common guideline is keeping each card and your overall balance under 30% of the limit (under 10% is often cited as even better). 'AZEO' (All Zero Except One) describes paying cards to $0 and leaving a small balance on one before the statement closes. These are widely discussed concepts — not guarantees — and how they apply to you depends on your full credit profile." },
+  { q: "Should I close old credit cards?", a: "Length of credit history is about 15% of a score, and closing your oldest card can shorten your average age and reduce your total available credit (which raises utilization). Many people keep older no-fee cards open for this reason. Consider your own situation, and ask a professional if you're unsure." },
+  { q: "How are paid vs. unpaid collections treated?", a: "Older scoring models factored in paid collections; newer models (FICO 9, VantageScore 3.0+) generally ignore them. How to handle a collection account is a personal financial and legal decision — a qualified professional can explain your options." },
+  { q: "How long do negative items stay on a report?", a: "Most negatives — late payments, collections, charge-offs — generally fall off about 7 years after the original delinquency date. Hard inquiries typically stop affecting a score after about 12 months and drop off after 2 years. Items usually age off automatically once they pass these timeframes." },
+  { q: "How do people maintain good credit over time?", a: "Commonly cited habits include paying on time (payment history is the biggest factor), keeping utilization low, keeping older accounts open, and applying for new credit only when needed. Reviewing your report periodically for accuracy is also widely recommended." },
 ];
 export function Education() {
   const [open, setOpen] = useState(0);

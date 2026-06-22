@@ -40,7 +40,7 @@ export default function BookCall({ analysis }) {
 
   return (
     <div>
-      <SectionTitle kicker="Get help" title="Want Dom to walk you through this?" sub="Book a free consultation. Dom will review your situation personally and build a strategy to get you mortgage-ready." />
+      <SectionTitle kicker="Get help" title="Talk through your mortgage-readiness goals" sub="Book a free, no-obligation consultation about your path to home financing. Dom is a licensed loan originator — this is an educational mortgage-readiness conversation, not a credit-repair service. He won't dispute, remove, or fix items on your report." />
       <Card style={{ padding: "1.75rem" }}>
         {done ? (
           <div style={{ textAlign: "center", padding: "1rem 0" }}>
@@ -58,7 +58,7 @@ export default function BookCall({ analysis }) {
             </div>
             {err && <p style={{ color: RED, fontSize: "0.82rem", marginBottom: "0.75rem" }}>{err}</p>}
             <Button onClick={submit} disabled={busy} style={{ padding: "0.8rem 1.75rem", textTransform: "uppercase", fontWeight: 700 }}>
-              {busy ? "Sending…" : "Book my consultation →"}
+              {busy ? "Sending…" : "Book my free consultation →"}
             </Button>
           </>
         )}

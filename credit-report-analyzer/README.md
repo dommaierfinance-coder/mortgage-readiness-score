@@ -1,6 +1,6 @@
 # Credit Report Analyzer — Dom Maier Finance
 
-Upload a credit report PDF and get a prioritized, data-driven plan to raise your score the fastest. Built with React + Vite, deployed on Vercel, powered by Claude for PDF extraction.
+Upload a credit report PDF to understand what's affecting your score, with an educational breakdown of the factors. Built with React + Vite, deployed on Vercel, powered by Claude for PDF extraction. Educational information only — not financial, legal, or credit-repair advice.
 
 > ⚠️ This is a **self-contained project** that currently lives in a subfolder of
 > the `mortgage-readiness-score` repo (creating a separate GitHub repo wasn't
@@ -10,23 +10,22 @@ Upload a credit report PDF and get a prioritized, data-driven plan to raise your
 
 ## What it does
 
-- **PDF analysis** — Claude (`claude-opus-4-8`) reads the uploaded report and extracts accounts, balances, limits, collections, charge-offs, late payments, and inquiries into a structured schema. The PDF is never stored.
+- **PDF analysis** — Claude (`claude-sonnet-4-6`) reads the uploaded report and extracts accounts, balances, limits, collections, charge-offs, late payments, and inquiries into a structured schema. The PDF is never stored.
 - **Score factor dashboard** — estimates a 300–850 score from the five FICO factors and shows where each stands. Anchors to the report's real score when present.
-- **Fastest-paydown optimizer** — ranks each card paydown by score-points-per-dollar, crossing the utilization thresholds (90% → 50% → 30% → 10% → $0) that move scores. Enter a budget to get an optimal allocation.
-- **What-if simulator** — sliders + toggles to model paying down balances or removing a negative, with live estimated score impact.
-- **Negatives & dispute audit** — every derogatory item with a recommended action and 7-year fall-off date; flags items already past due to drop.
-- **Dispute letter generator** — pre-filled dispute / goodwill / pay-for-delete / validation letters, ready to download and mail.
-- **AI credit coach** — chat grounded in the user's actual (non-identifying) report summary.
+- **Paydown optimizer (educational)** — illustrates how lowering balances across common utilization reference points (90% → 50% → 30% → 10% → $0) relates to the estimated score; optional budget allocation. Estimates only, not a promise of results.
+- **What-if simulator** — sliders + toggles to model how different factors could affect the estimated score (e.g., an item no longer on the report once it ages off).
+- **Negative items (educational)** — each derogatory item with a plain-language explanation and typical 7-year fall-off date; no instructions to act.
+- **AI coach** — educational chat grounded in the user's non-identifying report summary; explains factors and never drafts dispute letters, tells users to dispute specific items, or promises score outcomes.
 - **Action roadmap, education hub, and progress tracking** (local-only snapshots).
-- **Book-a-call** — lead capture that hands off to Dom via Resend + Klaviyo.
+- **Book-a-call** — educational mortgage-readiness lead capture that hands off to Dom via Resend + Klaviyo.
 
 ## Architecture
 
 ```
 src/
   lib/credit.js     Deterministic scoring engine (utilization, paydown optimizer,
-                    score model, negatives audit, roadmap) — pure functions.
-  lib/letters.js    Dispute letter templates.
+                    score model, negative-item summary, roadmap) — pure functions.
+  lib/license.js    Gumroad license gate (client side).
   lib/storage.js    Local-only progress snapshots.
   components/        Upload portal + dashboard sections.
 api/
@@ -35,7 +34,7 @@ api/
   lead.js           Lead capture → Resend + Klaviyo.
 ```
 
-Extraction (reading the PDF) is done by Claude server-side; **all scoring math runs in the browser** on the structured data, so the recommendations are precise and repeatable rather than model-guessed. The score is an internally-consistent heuristic for ranking actions and driving the simulator — not an official FICO score.
+Extraction (reading the PDF) is done by Claude server-side; **all scoring math runs in the browser** on the structured data, so the estimates and explanations are precise and repeatable rather than model-guessed. The score is an internally-consistent heuristic for illustrating factors and driving the simulator — not an official FICO score, and not a promise of results.
 
 ## Local development
 
@@ -65,7 +64,7 @@ No API key handy? Click **"Try it with sample data"** on the upload screen — t
 
 ### Paywall (Gumroad)
 
-The action toolkit (paydown optimizer, simulator, dispute letters, AI coach, progress) is gated behind a one-time Gumroad purchase; the score, factor dashboard, negatives audit, roadmap, and education stay free.
+The action toolkit (paydown optimizer, simulator, AI coach, progress tracking) is gated behind a one-time Gumroad purchase; the score, factor dashboard, negative-item summary, roadmap, and education stay free.
 
 1. Create a Gumroad **product** → Settings → enable **"Generate a unique license key per sale."**
 2. Set **`GUMROAD_PRODUCT_ID`** (server env) to the product's ID **or** its permalink (the code after `gumroad.com/l/…`), and **`VITE_GUMROAD_URL`** (build env) to its checkout URL.

@@ -7,10 +7,9 @@ import { verifyLicense } from "../lib/license";
 const BUY_URL = import.meta.env.VITE_GUMROAD_URL || "";
 
 const PERKS = [
-  "Fastest-paydown optimizer with budget allocation",
+  "Paydown optimizer with budget allocation",
   "What-if score simulator",
-  "Dispute / goodwill / pay-for-delete letter generator",
-  "AI credit coach for your specific report",
+  "AI coach to help you understand your report",
   "Progress tracking across re-uploads",
 ];
 

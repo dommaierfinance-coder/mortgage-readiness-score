@@ -45,12 +45,12 @@ export default function App() {
 
         {!analysis && (
           <div style={{ marginTop: "2.5rem", marginBottom: "2.5rem", textAlign: "center" }}>
-            <div style={{ fontSize: "0.7rem", color: ACCENT, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.7rem", fontWeight: 600 }}>Upload · Analyze · Act</div>
+            <div style={{ fontSize: "0.7rem", color: ACCENT, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.7rem", fontWeight: 600 }}>Upload · Understand · Learn</div>
             <h1 style={{ fontSize: "clamp(1.9rem,5vw,2.8rem)", fontWeight: 700, fontFamily: SERIF, lineHeight: 1.12, margin: "0 0 0.7rem", letterSpacing: "-0.02em" }}>
-              Know exactly what to pay <em style={{ fontStyle: "italic", color: ACCENT }}>first.</em>
+              Understand your <em style={{ fontStyle: "italic", color: ACCENT }}>credit report.</em>
             </h1>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "1rem", margin: "0 auto", maxWidth: 520, lineHeight: 1.6 }}>
-              Upload your credit report and get a prioritized, data-driven plan to raise your score the fastest — plus dispute letters, a what-if simulator, and an AI coach.
+              Upload your credit report to understand exactly what's affecting your score — with a what-if simulator and an AI coach to help you learn.
             </p>
           </div>
         )}

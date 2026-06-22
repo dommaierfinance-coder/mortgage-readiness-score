@@ -3,7 +3,7 @@ import { ACCENT, BORDER } from "../theme";
 import { Button } from "./ui";
 import {
   ScoreFactors, PaydownOptimizer, Simulator, Negatives,
-  LetterGenerator, Roadmap, Education, Progress,
+  Roadmap, Education, Progress,
 } from "./sections";
 import Coach from "./Coach";
 import BookCall from "./BookCall";
@@ -14,7 +14,6 @@ const TABS = [
   { id: "paydown", label: "Paydown Plan", paid: true },
   { id: "simulator", label: "Simulator", paid: true },
   { id: "negatives", label: "Negatives" },
-  { id: "letters", label: "Letters", paid: true },
   { id: "roadmap", label: "Roadmap" },
   { id: "coach", label: "AI Coach", paid: true },
   { id: "learn", label: "Learn" },
@@ -53,7 +52,6 @@ export default function Dashboard({ report, analysis, history, onRestart, unlock
             {tab === "paydown" && <PaydownOptimizer report={report} />}
             {tab === "simulator" && <Simulator report={report} />}
             {tab === "negatives" && <Negatives analysis={analysis} />}
-            {tab === "letters" && <LetterGenerator report={report} analysis={analysis} />}
             {tab === "roadmap" && <Roadmap analysis={analysis} />}
             {tab === "coach" && <Coach report={report} analysis={analysis} onBookCall={() => setTab("overview")} />}
             {tab === "learn" && <Education />}

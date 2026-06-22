@@ -3,10 +3,10 @@ import { ACCENT, BORDER, MONO } from "../theme";
 import { Card, SectionTitle, Button } from "./ui";
 
 const SUGGESTIONS = [
-  "Which account should I pay off first and why?",
-  "How long until I could be mortgage-ready?",
-  "Is it worth disputing my collections?",
-  "What's hurting my score the most right now?",
+  "What does my utilization mean for my score?",
+  "Which factors affect a credit score the most?",
+  "How do collections generally affect credit?",
+  "How is payment history viewed by scoring models?",
 ];
 
 // Sends a compact, non-identifying summary of the report to the AI coach so it
@@ -30,7 +30,7 @@ const COACH_LIMIT = 10; // free questions per session before nudging to book a c
 
 export default function Coach({ report, analysis, onBookCall }) {
   const [messages, setMessages] = useState([
-    { role: "assistant", text: "Hi — I've reviewed your report. Ask me anything about your score, what to pay first, or how to get mortgage-ready." },
+    { role: "assistant", text: "Hi — I've reviewed your report. Ask me to explain your numbers or how credit factors generally work. I'm here to help you understand your report — not to give credit-repair, legal, or financial advice." },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,6 +72,9 @@ export default function Coach({ report, analysis, onBookCall }) {
     <div>
       <SectionTitle kicker="Ask" title="Your AI credit coach" sub="Answers grounded in your actual report. Educational guidance — not a credit-repair service or financial advice." />
       <Card style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: 480 }}>
+        <div style={{ padding: "0.5rem 1rem", borderBottom: `1px solid ${BORDER}`, fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", textAlign: "center", background: "rgba(255,255,255,0.015)" }}>
+          Educational information only — not financial, legal, or credit-repair advice.
+        </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
           {messages.map((m, i) => (
             <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: "0.85rem" }}>
@@ -98,9 +101,9 @@ export default function Coach({ report, analysis, onBookCall }) {
         {capped ? (
           <div style={{ padding: "1rem", borderTop: `1px solid ${BORDER}`, textAlign: "center" }}>
             <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem", lineHeight: 1.55, margin: "0 0 0.75rem" }}>
-              You've used your {COACH_LIMIT} free coaching questions for this session. For deeper, personalized help, book a free call with Dom.
+              You've used your {COACH_LIMIT} questions for this session. If you'd like to talk through your mortgage-readiness goals, you can book a free, no-obligation call with Dom — an educational conversation about home financing.
             </p>
-            <Button onClick={() => onBookCall?.()} style={{ padding: "0.7rem 1.4rem" }}>Book a free call with Dom →</Button>
+            <Button onClick={() => onBookCall?.()} style={{ padding: "0.7rem 1.4rem" }}>Book a mortgage-readiness call →</Button>
           </div>
         ) : (
           <div style={{ borderTop: `1px solid ${BORDER}` }}>

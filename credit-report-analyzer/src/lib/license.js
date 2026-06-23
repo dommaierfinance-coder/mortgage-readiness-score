@@ -2,6 +2,12 @@
 // user stays unlocked across visits on this device.
 const KEY = "cra_license_v1";
 
+// The paywall is only active once a Gumroad checkout URL is configured. Until
+// then (e.g. while previewing), the whole app is unlocked so nothing is hidden.
+export function paywallEnabled() {
+  return !!import.meta.env.VITE_GUMROAD_URL;
+}
+
 export function getStoredLicense() {
   try {
     return JSON.parse(localStorage.getItem(KEY) || "null");

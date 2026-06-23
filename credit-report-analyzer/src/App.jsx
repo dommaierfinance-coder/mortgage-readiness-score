@@ -4,13 +4,13 @@ import Upload from "./components/Upload";
 import Dashboard from "./components/Dashboard";
 import { analyze } from "./lib/credit";
 import { recordSnapshot, loadHistory } from "./lib/storage";
-import { isUnlocked } from "./lib/license";
+import { isUnlocked, paywallEnabled } from "./lib/license";
 
 export default function App() {
   const [report, setReport] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [history, setHistory] = useState([]);
-  const [unlocked, setUnlocked] = useState(() => isUnlocked());
+  const [unlocked, setUnlocked] = useState(() => !paywallEnabled() || isUnlocked());
 
   function handleAnalyzed(rep) {
     const a = analyze(rep);

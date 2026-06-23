@@ -7,14 +7,21 @@ export const config = { maxDuration: 15 };
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ valid: false, error: "Method not allowed" });
 
-  const productId = process.env.GUMROAD_PRODUCT_ID;
-  if (!productId) {
-    return res.status(500).json({ valid: false, error: "Licensing isn't configured yet (missing GUMROAD_PRODUCT_ID)." });
-  }
-
   const { licenseKey } = req.body || {};
   if (!licenseKey || !String(licenseKey).trim()) {
     return res.status(400).json({ valid: false, error: "Please enter your license key." });
+  }
+
+  // Owner override: a private key (set OWNER_UNLOCK_KEY) unlocks without a
+  // purchase. Checked server-side so it never appears in the client bundle.
+  const ownerKey = process.env.OWNER_UNLOCK_KEY;
+  if (ownerKey && String(licenseKey).trim() === ownerKey) {
+    return res.status(200).json({ valid: true, product: "Owner access" });
+  }
+
+  const productId = process.env.GUMROAD_PRODUCT_ID;
+  if (!productId) {
+    return res.status(500).json({ valid: false, error: "Licensing isn't configured yet (missing GUMROAD_PRODUCT_ID)." });
   }
 
   // Accept either a Gumroad product_id or a product permalink (the code after

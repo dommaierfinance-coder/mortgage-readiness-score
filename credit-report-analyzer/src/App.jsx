@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ACCENT, BG, BORDER, FONT, SERIF } from "./theme";
 import Upload from "./components/Upload";
 import Dashboard from "./components/Dashboard";
+import Paywall from "./components/Paywall";
 import { analyze } from "./lib/credit";
 import { recordSnapshot, loadHistory } from "./lib/storage";
 import { isUnlocked, paywallEnabled } from "./lib/license";
@@ -11,6 +12,7 @@ export default function App() {
   const [analysis, setAnalysis] = useState(null);
   const [history, setHistory] = useState([]);
   const [unlocked, setUnlocked] = useState(() => !paywallEnabled() || isUnlocked());
+  const gated = paywallEnabled() && !unlocked;
 
   function handleAnalyzed(rep) {
     const a = analyze(rep);
@@ -57,7 +59,9 @@ export default function App() {
       </div>
 
       {analysis ? (
-        <Dashboard report={report} analysis={analysis} history={history} onRestart={restart} unlocked={unlocked} onUnlock={() => setUnlocked(true)} />
+        <Dashboard report={report} analysis={analysis} history={history} onRestart={restart} />
+      ) : gated ? (
+        <Paywall feature="the full credit report analysis" onUnlock={() => setUnlocked(true)} />
       ) : (
         <Upload onAnalyzed={handleAnalyzed} />
       )}

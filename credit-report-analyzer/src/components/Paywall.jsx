@@ -7,10 +7,12 @@ import { verifyLicense } from "../lib/license";
 const BUY_URL = import.meta.env.VITE_GUMROAD_URL || "";
 
 const PERKS = [
+  "Full report analysis with your 300–850 score estimate",
+  "Five-factor breakdown of what's affecting your score",
   "Paydown optimizer with budget allocation",
   "What-if score simulator",
   "AI coach to help you understand your report",
-  "Progress tracking across re-uploads",
+  "Negative-item timeline & progress tracking",
 ];
 
 export default function Paywall({ feature, onUnlock }) {
@@ -35,7 +37,7 @@ export default function Paywall({ feature, onUnlock }) {
 
   return (
     <div>
-      <SectionTitle kicker="Premium" title={`Unlock the Action Toolkit`} sub={`"${feature}" is part of the full toolkit. Your free analysis stays free — unlock the tools that turn it into action.`} />
+      <SectionTitle kicker="Premium" title="Unlock the Credit Report Analyzer" sub="Upload your report and get your full score breakdown, paydown optimizer, what-if simulator, and AI coach. One-time purchase — then enter your license key below to unlock." />
       <Card style={{ padding: "1.75rem" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "1.5rem" }}>
           {PERKS.map((p) => (

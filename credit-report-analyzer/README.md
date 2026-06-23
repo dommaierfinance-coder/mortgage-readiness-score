@@ -64,7 +64,7 @@ No API key handy? Click **"Try it with sample data"** on the upload screen — t
 
 ### Paywall (Gumroad)
 
-The action toolkit (paydown optimizer, simulator, AI coach, progress tracking) is gated behind a one-time Gumroad purchase; the score, factor dashboard, negative-item summary, roadmap, and education stay free.
+The **entire analyzer** is gated behind a one-time Gumroad purchase: the upload itself requires a valid license, so no analysis runs (and no Claude API cost is incurred) for non-buyers. The paywall is active **only when `VITE_GUMROAD_URL` is set** — otherwise the app is fully open, which is useful for previewing before monetization is wired up.
 
 1. Create a Gumroad **product** → Settings → enable **"Generate a unique license key per sale."**
 2. Set **`GUMROAD_PRODUCT_ID`** (server env) to the product's ID **or** its permalink (the code after `gumroad.com/l/…`), and **`VITE_GUMROAD_URL`** (build env) to its checkout URL.

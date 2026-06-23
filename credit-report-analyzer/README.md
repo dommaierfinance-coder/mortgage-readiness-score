@@ -57,6 +57,7 @@ No API key handy? Click **"Try it with sample data"** on the upload screen — t
 | `ANTHROPIC_API_KEY` | `analyze`, `coach` | Yes (for real PDFs + coach) |
 | `GUMROAD_PRODUCT_ID` | `verify-license` | For the paywall — your Gumroad product ID **or** permalink (the code after `gumroad.com/l/…`) |
 | `VITE_GUMROAD_URL` | Paywall buy button | For the paywall — your Gumroad checkout URL (build-time) |
+| `OWNER_UNLOCK_KEY` | `verify-license` | Optional private key that unlocks the app without a purchase (enter it in the license box). Server-side only. |
 | `RESEND_API_KEY` | `lead` | Optional |
 | `LEAD_NOTIFY_TO` | `lead` | Optional (defaults to dom@…) |
 | `LEAD_FROM` | `lead` | Optional |

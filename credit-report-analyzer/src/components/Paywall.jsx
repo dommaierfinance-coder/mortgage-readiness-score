@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ACCENT, BORDER, RED, GREEN } from "../theme";
 import { Card, SectionTitle, Button } from "./ui";
 import { verifyLicense } from "../lib/license";
@@ -20,13 +20,22 @@ export default function Paywall({ feature, onUnlock }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (window.gtag) window.gtag("event", "paywall_view");
+    if (window.fbq) window.fbq("trackCustom", "PaywallView");
+  }, []);
+
   async function unlock() {
     if (!key.trim()) return setError("Enter the license key from your purchase email.");
     setError("");
     setBusy(true);
     try {
       const res = await verifyLicense(key);
-      if (res.valid) onUnlock?.();
+      if (res.valid) {
+        if (window.gtag) window.gtag("event", "unlock_success");
+        if (window.fbq) window.fbq("trackCustom", "UnlockSuccess");
+        onUnlock?.();
+      }
       else setError(res.error || "That key didn't work.");
     } catch {
       setError("Couldn't verify right now — try again in a moment.");

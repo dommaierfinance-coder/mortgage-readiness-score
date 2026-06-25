@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-// Vercel: give the model room to read a multi-page PDF.
+// Vercel: give the model room to read a long report.
 export const config = { maxDuration: 60 };
 
 // Structured-output schema. Claude reads the report (text or PDF) and returns exactly this shape,
@@ -99,8 +99,46 @@ Rules:
 - Dates: use YYYY-MM-DD when a full date is shown, YYYY-MM when only month/year.
 - Do not invent data. Use null / 0 / empty arrays when something isn't present. Never include SSNs or full account numbers.`;
 
-// Cap extracted text to keep token usage sane (a huge report still fits comfortably).
-const MAX_TEXT_CHARS = 200000;
+// Generous ceiling after trimming. ~280k chars ≈ ~70k tokens, comfortably within context.
+const MAX_TEXT_CHARS = 280000;
+
+/**
+ * Long bureau reports (e.g. 100+ page TransUnion pulls) are dominated by repetitive
+ * month-by-month payment-history grids and legal disclosure boilerplate that add tokens
+ * without helping extraction. We compress those noisy regions while preserving the
+ * account/collection/inquiry/public-record substance the schema needs.
+ */
+function trimReportText(raw) {
+  let t = String(raw || "");
+
+  // Normalize whitespace runs.
+  t = t.replace(/[ \t\u00a0]{2,}/g, " ");
+  // Collapse long runs of blank lines.
+  t = t.replace(/\n{3,}/g, "\n\n");
+
+  // Collapse long sequences of payment-grid tokens (OK, 30, 60, 90, CO, ND, dashes, etc.)
+  // that repeat across many months. Keep a marker so the model still sees they existed.
+  t = t.replace(
+    /(?:\b(?:OK|ND|CO|30|60|90|120|150|180|R[1-9]|I[1-9]|C[1-9])\b[\s,|/–-]*){8,}/g,
+    " [payment history grid] "
+  );
+
+  // Drop obvious legal/disclosure boilerplate blocks common to bureau PDFs.
+  const boilerplate = [
+    /Fair Credit Reporting Act[\s\S]{0,1200}?(?=\n\n|\n[A-Z])/g,
+    /Para inform[\s\S]{0,800}?(?=\n\n)/g, // Spanish-language disclosures
+    /You have the right to[\s\S]{0,600}?(?=\n\n)/g,
+    /A Summary of Your Rights[\s\S]{0,1200}?(?=\n\n)/g,
+  ];
+  for (const re of boilerplate) t = t.replace(re, " ");
+
+  // Final whitespace tidy.
+  t = t.replace(/\n{3,}/g, "\n\n").trim();
+
+  // Hard cap as a safety net.
+  if (t.length > MAX_TEXT_CHARS) t = t.slice(0, MAX_TEXT_CHARS);
+  return t;
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -108,18 +146,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY. Set it in your environment, or use the sample data to explore the app." });
   }
 
-  // Accept EITHER extracted text (preferred) OR a base64 PDF (scanned fallback).
   const { text: reportText, pdf } = req.body || {};
-
   if (!reportText && !pdf) {
     return res.status(400).json({ error: "No report provided." });
   }
 
-  // Build the content block depending on what the browser sent.
   let inputBlock;
   if (reportText && reportText.trim().length > 0) {
-    const clipped = reportText.slice(0, MAX_TEXT_CHARS);
-    inputBlock = { type: "text", text: `<credit_report>\n${clipped}\n</credit_report>` };
+    const trimmed = trimReportText(reportText);
+    inputBlock = { type: "text", text: `<credit_report>\n${trimmed}\n</credit_report>` };
   } else {
     inputBlock = { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } };
   }
@@ -159,7 +194,7 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = error?.status;
     if (status === 401) return res.status(500).json({ error: "Invalid ANTHROPIC_API_KEY." });
-    if (status === 413 || status === 400) return res.status(413).json({ error: "That report is too large to process. Please upload a smaller, text-based report." });
+    if (status === 413 || status === 400) return res.status(413).json({ error: "This report is unusually large. Please try downloading a fresh copy from AnnualCreditReport.com, or a single-bureau report." });
     console.error("analyze error:", error?.message || error);
     return res.status(500).json({ error: "Analysis failed. Please try again in a moment." });
   }

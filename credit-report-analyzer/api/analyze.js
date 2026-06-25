@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // Vercel: give the model room to read a multi-page PDF.
 export const config = { maxDuration: 60 };
 
-// Structured-output schema. Claude reads the PDF and returns exactly this shape,
+// Structured-output schema. Claude reads the report (text or PDF) and returns exactly this shape,
 // which the browser-side engine (src/lib/credit.js) then analyzes.
 const REPORT_SCHEMA = {
   type: "object",
@@ -87,7 +87,7 @@ const REPORT_SCHEMA = {
   required: ["bureau", "reportDate", "providedScore", "scoreModel", "accounts", "collections", "inquiries", "publicRecords", "personalInfoFlags"],
 };
 
-const INSTRUCTIONS = `You are a meticulous credit-report data extractor. Read the attached credit report PDF and extract every tradeline, collection, hard inquiry, and public record into the structured schema.
+const INSTRUCTIONS = `You are a meticulous credit-report data extractor. Read the attached credit report and extract every tradeline, collection, hard inquiry, and public record into the structured schema.
 
 Rules:
 - Give each account and collection a short unique id (a1, a2, c1, ...).
@@ -99,14 +99,30 @@ Rules:
 - Dates: use YYYY-MM-DD when a full date is shown, YYYY-MM when only month/year.
 - Do not invent data. Use null / 0 / empty arrays when something isn't present. Never include SSNs or full account numbers.`;
 
+// Cap extracted text to keep token usage sane (a huge report still fits comfortably).
+const MAX_TEXT_CHARS = 200000;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY. Set it in your environment, or use the sample data to explore the app." });
   }
 
-  const { pdf } = req.body || {};
-  if (!pdf) return res.status(400).json({ error: "No PDF provided." });
+  // Accept EITHER extracted text (preferred) OR a base64 PDF (scanned fallback).
+  const { text: reportText, pdf } = req.body || {};
+
+  if (!reportText && !pdf) {
+    return res.status(400).json({ error: "No report provided." });
+  }
+
+  // Build the content block depending on what the browser sent.
+  let inputBlock;
+  if (reportText && reportText.trim().length > 0) {
+    const clipped = reportText.slice(0, MAX_TEXT_CHARS);
+    inputBlock = { type: "text", text: `<credit_report>\n${clipped}\n</credit_report>` };
+  } else {
+    inputBlock = { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } };
+  }
 
   try {
     const client = new Anthropic();
@@ -121,7 +137,7 @@ export default async function handler(req, res) {
         {
           role: "user",
           content: [
-            { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } },
+            inputBlock,
             { type: "text", text: INSTRUCTIONS },
           ],
         },
@@ -129,7 +145,7 @@ export default async function handler(req, res) {
     });
 
     if (message.stop_reason === "refusal") {
-      return res.status(422).json({ error: "The document could not be processed. Please ensure it's a standard credit report PDF." });
+      return res.status(422).json({ error: "The document could not be processed. Please ensure it's a standard credit report." });
     }
 
     const text = (message.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -143,7 +159,7 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = error?.status;
     if (status === 401) return res.status(500).json({ error: "Invalid ANTHROPIC_API_KEY." });
-    if (status === 413 || status === 400) return res.status(413).json({ error: "That PDF is too large to process. Please upload a smaller, text-based report." });
+    if (status === 413 || status === 400) return res.status(413).json({ error: "That report is too large to process. Please upload a smaller, text-based report." });
     console.error("analyze error:", error?.message || error);
     return res.status(500).json({ error: "Analysis failed. Please try again in a moment." });
   }

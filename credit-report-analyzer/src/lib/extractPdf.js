@@ -1,33 +1,27 @@
 // src/lib/extractPdf.js
-// Browser-side PDF text extraction with a scanned-report fallback.
+// Browser-side PDF text extraction with resilient page-by-page reading.
 //
-// Strategy:
-//   1. Try to pull the embedded text layer with pdf.js (works for true text PDFs
-//      like annualcreditreport.com downloads). Sends ~50 KB instead of a 12 MB file.
-//   2. If the extracted text is too thin, the PDF is almost certainly scanned/image-based.
-//      Fall back to sending the raw PDF as base64 so Claude can OCR it natively.
-//
-// Requires: npm install pdfjs-dist
+// Credit reports from the bureaus are TEXT PDFs but can be very long (100+ pages).
+// We extract page by page so a single problematic page can't abort the whole job,
+// and we keep whatever text we successfully pull. Only a PDF that yields essentially
+// no text at all is treated as scanned/image-based and routed to the OCR fallback.
 
 import * as pdfjsLib from "pdfjs-dist";
 
 // Load the pdf.js worker from a CDN that matches the installed version exactly.
-// (Avoids bundler-specific worker path resolution, which can break the build.)
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-// If the whole report yields fewer than this many characters, treat it as scanned.
-const MIN_TEXT_CHARS = 400;
-// Hard ceiling for the base64 fallback path (~3.3 MB raw PDF after base64 inflation
-// stays under Vercel's 4.5 MB body limit). Reports above this on the scanned path
-// get a clear message instead of a silent failure.
+// Below this, we treat the document as having no usable text layer (scanned).
+const MIN_TEXT_CHARS = 200;
+// Fallback (scanned) path ceiling: base64 inflates ~33%, must clear Vercel's ~4.5 MB body cap.
 const MAX_PDF_BYTES_FOR_FALLBACK = 3.3 * 1024 * 1024;
 
 /**
- * Reads a File (PDF) and returns one of:
- *   { mode: "text", text: "..." }     -> send as { text } to /api/analyze
- *   { mode: "pdf",  pdf: "<base64>" }  -> send as { pdf }  to /api/analyze
- *   { mode: "error", message: "..." }  -> show to the user, don't call the API
+ * Returns one of:
+ *   { mode: "text", text }            -> send as { text }
+ *   { mode: "pdf",  pdf }             -> send as { pdf }   (scanned fallback)
+ *   { mode: "error", message }        -> show to user
  */
 export async function extractReport(file) {
   if (!file || file.type !== "application/pdf") {
@@ -36,42 +30,59 @@ export async function extractReport(file) {
 
   const buffer = await file.arrayBuffer();
 
-  // --- Step 1: try the text layer ---
   let text = "";
+  let pagesRead = 0;
+  let openedOk = false;
+
   try {
     const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-    const pages = [];
+    openedOk = true;
+    const parts = [];
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((it) => ("str" in it ? it.str : "")).join(" ");
-      pages.push(pageText);
+      try {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map((it) => ("str" in it ? it.str : "")).join(" ");
+        if (pageText.trim()) {
+          parts.push(pageText);
+          pagesRead++;
+        }
+      } catch (pageErr) {
+        // Skip a bad page, keep going.
+        continue;
+      }
     }
-    text = pages.join("\n").replace(/\s+\n/g, "\n").trim();
+    text = parts.join("\n").replace(/[ \t]+\n/g, "\n").trim();
   } catch (e) {
-    // Corrupt/locked PDF or parsing failure -> try the scanned fallback path below.
-    text = "";
+    // Could not open/parse the PDF at all.
+    openedOk = false;
   }
 
-  // --- Step 2: decide path ---
+  // Got usable text -> always send as text (works regardless of file size).
   if (text.length >= MIN_TEXT_CHARS) {
     return { mode: "text", text };
   }
 
-  // Thin or empty text => scanned/image PDF. Fall back to sending the PDF for OCR,
-  // but only if it's small enough to clear Vercel's body limit.
-  if (file.size > MAX_PDF_BYTES_FOR_FALLBACK) {
+  // Opened fine but essentially no text => scanned/image PDF. Try OCR fallback if small enough.
+  if (file.size <= MAX_PDF_BYTES_FOR_FALLBACK) {
+    const base64 = await fileToBase64(file);
+    return { mode: "pdf", pdf: base64 };
+  }
+
+  // No text and too large to send as a PDF.
+  if (openedOk) {
     return {
       mode: "error",
       message:
-        "This looks like a scanned/image report that's too large to process. " +
-        "For best results, download a text-based PDF from AnnualCreditReport.com, " +
-        "or upload a smaller scan.",
+        "We couldn't read selectable text from this report, and it's too large to process as an image. " +
+        "Please download a fresh text-based PDF from AnnualCreditReport.com and try again.",
     };
   }
-
-  const base64 = await fileToBase64(file);
-  return { mode: "pdf", pdf: base64 };
+  return {
+    mode: "error",
+    message:
+      "We couldn't open this PDF. Please re-download your report from AnnualCreditReport.com and upload the new file.",
+  };
 }
 
 function fileToBase64(file) {
@@ -80,7 +91,6 @@ function fileToBase64(file) {
     reader.onerror = () => reject(new Error("Could not read the file."));
     reader.onload = () => {
       const result = String(reader.result || "");
-      // strip the "data:application/pdf;base64," prefix
       const comma = result.indexOf(",");
       resolve(comma >= 0 ? result.slice(comma + 1) : result);
     };

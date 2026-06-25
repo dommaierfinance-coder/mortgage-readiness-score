@@ -1,34 +1,66 @@
 // src/lib/extractPdf.js
-// Browser-side PDF text extraction with resilient, page-capped reading.
+// Browser-side PDF text extraction that captures ALL accounts regardless of page,
+// while stripping the bulk "noise" (payment-history grids + legal disclosures) that
+// would otherwise blow the downstream analysis past the serverless time limit.
 //
-// Credit reports are TEXT PDFs but can run 100+ pages. The account/collection/
-// inquiry/public-record data the analyzer needs lives in the earlier pages; the
-// long tail is repetitive payment-history grids and legal disclosures. We cap how
-// many pages we extract so the downstream analysis finishes within the serverless
-// time limit, while still capturing everything that matters.
+// Approach: read every page (so a tradeline on page 56 is never missed), then filter
+// the text line-by-line, dropping lines that are essentially payment-grid tokens or
+// known disclosure boilerplate. Everything substantive (creditors, balances, limits,
+// dates, statuses, collections, inquiries) is preserved.
 
 import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-// Stop extracting after this many pages. Generous enough to capture all tradelines/
-// collections/inquiries on even large multi-bureau pulls; small enough to keep
-// analysis under the serverless timeout.
-const MAX_PAGES = 45;
-// Also cap total characters as a second guardrail.
-const MAX_CHARS = 180000;
-// Below this, treat as scanned/image (no usable text layer).
 const MIN_TEXT_CHARS = 200;
-// Scanned-PDF OCR fallback ceiling (base64 must clear Vercel's body limit).
 const MAX_PDF_BYTES_FOR_FALLBACK = 3.3 * 1024 * 1024;
+// Final guardrail after filtering. Plenty for a fully-itemized multi-account report.
+const MAX_CHARS = 220000;
 
-/**
- * Returns one of:
- *   { mode: "text", text }     -> send as { text }
- *   { mode: "pdf",  pdf }      -> send as { pdf }   (scanned fallback)
- *   { mode: "error", message } -> show to user
- */
+// A line is "grid noise" if, after removing common payment-status tokens and
+// separators, almost nothing meaningful is left. These tokens repeat month-by-month
+// across years and dominate long reports without adding extractable data.
+const GRID_TOKEN = /\b(OK|ND|CO|CLS|N\/A|NA|30|60|90|120|150|180|R[1-9]|I[1-9]|C[1-9]|X{1,2})\b/gi;
+const SEPARATORS = /[\s,|/\\\-–—.*]+/g;
+
+function isGridNoiseLine(line) {
+  const trimmed = line.trim();
+  if (trimmed.length < 12) return false; // keep short labels/values
+  const stripped = trimmed.replace(GRID_TOKEN, "").replace(SEPARATORS, "");
+  // If <15% of the line survives after removing grid tokens/separators, it's a grid row.
+  return stripped.length / trimmed.length < 0.15;
+}
+
+const DISCLOSURE_HINTS = [
+  "fair credit reporting act",
+  "summary of your rights",
+  "you have the right",
+  "para informaci",            // Spanish disclosures
+  "equal credit opportunity",
+  "consumer financial protection bureau",
+  "permissible purpose",
+  "this report does not",
+];
+
+function isDisclosureLine(line) {
+  const l = line.toLowerCase();
+  return DISCLOSURE_HINTS.some((h) => l.includes(h));
+}
+
+function filterReportText(raw) {
+  const lines = String(raw || "").split("\n");
+  const kept = [];
+  for (const line of lines) {
+    if (isGridNoiseLine(line)) continue;
+    if (isDisclosureLine(line)) continue;
+    kept.push(line);
+  }
+  let out = kept.join("\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
+  if (out.length > MAX_CHARS) out = out.slice(0, MAX_CHARS);
+  return out;
+}
+
 export async function extractReport(file) {
   if (!file || file.type !== "application/pdf") {
     return { mode: "error", message: "Please upload a PDF credit report." };
@@ -36,37 +68,39 @@ export async function extractReport(file) {
 
   const buffer = await file.arrayBuffer();
 
-  let text = "";
+  let rawText = "";
   let openedOk = false;
 
   try {
     const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     openedOk = true;
-    const pageLimit = Math.min(pdf.numPages, MAX_PAGES);
     const parts = [];
-    let chars = 0;
-    for (let i = 1; i <= pageLimit; i++) {
+    for (let i = 1; i <= pdf.numPages; i++) {
       try {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        const pageText = content.items.map((it) => ("str" in it ? it.str : "")).join(" ");
-        if (pageText.trim()) {
-          parts.push(pageText);
-          chars += pageText.length;
+        // Preserve line structure: pdf.js gives items with positions; join with spaces
+        // but break lines on items flagged hasEOL when available.
+        let pageText = "";
+        for (const it of content.items) {
+          if (!("str" in it)) continue;
+          pageText += it.str;
+          pageText += it.hasEOL ? "\n" : " ";
         }
-        if (chars >= MAX_CHARS) break;
+        if (pageText.trim()) parts.push(pageText);
       } catch (pageErr) {
-        continue; // skip a bad page, keep going
+        continue;
       }
     }
-    text = parts.join("\n").replace(/[ \t]+\n/g, "\n").trim();
-    if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS);
+    rawText = parts.join("\n");
   } catch (e) {
     openedOk = false;
   }
 
-  if (text.length >= MIN_TEXT_CHARS) {
-    return { mode: "text", text };
+  const filtered = filterReportText(rawText);
+
+  if (filtered.length >= MIN_TEXT_CHARS) {
+    return { mode: "text", text: filtered };
   }
 
   // No usable text => scanned/image PDF. Try OCR fallback if small enough.

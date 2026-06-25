@@ -1,34 +1,29 @@
 // src/lib/extractPdf.js
-// Browser-side PDF text extraction that captures ALL accounts regardless of page,
-// while stripping the bulk "noise" (payment-history grids + legal disclosures) that
-// would otherwise blow the downstream analysis past the serverless time limit.
+// Browser-side PDF text extraction with a page cap that covers normal-to-long reports
+// while keeping the downstream analysis under the serverless 60s limit.
 //
-// Approach: read every page (so a tradeline on page 56 is never missed), then filter
-// the text line-by-line, dropping lines that are essentially payment-grid tokens or
-// known disclosure boilerplate. Everything substantive (creditors, balances, limits,
-// dates, statuses, collections, inquiries) is preserved.
+// Reads up to MAX_PAGES, strips obvious payment-grid noise and disclosure boilerplate
+// to keep the payload lean, and falls back to OCR for scanned/image PDFs.
 
 import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
+// Covers the large majority of real client reports (incl. long histories) while
+// staying fast enough to beat the 60s Hobby-plan function timeout.
+const MAX_PAGES = 60;
+const MAX_CHARS = 200000;
 const MIN_TEXT_CHARS = 200;
 const MAX_PDF_BYTES_FOR_FALLBACK = 3.3 * 1024 * 1024;
-// Final guardrail after filtering. Plenty for a fully-itemized multi-account report.
-const MAX_CHARS = 220000;
 
-// A line is "grid noise" if, after removing common payment-status tokens and
-// separators, almost nothing meaningful is left. These tokens repeat month-by-month
-// across years and dominate long reports without adding extractable data.
 const GRID_TOKEN = /\b(OK|ND|CO|CLS|N\/A|NA|30|60|90|120|150|180|R[1-9]|I[1-9]|C[1-9]|X{1,2})\b/gi;
 const SEPARATORS = /[\s,|/\\\-–—.*]+/g;
 
 function isGridNoiseLine(line) {
   const trimmed = line.trim();
-  if (trimmed.length < 12) return false; // keep short labels/values
+  if (trimmed.length < 12) return false;
   const stripped = trimmed.replace(GRID_TOKEN, "").replace(SEPARATORS, "");
-  // If <15% of the line survives after removing grid tokens/separators, it's a grid row.
   return stripped.length / trimmed.length < 0.15;
 }
 
@@ -36,11 +31,10 @@ const DISCLOSURE_HINTS = [
   "fair credit reporting act",
   "summary of your rights",
   "you have the right",
-  "para informaci",            // Spanish disclosures
+  "para informaci",
   "equal credit opportunity",
   "consumer financial protection bureau",
   "permissible purpose",
-  "this report does not",
 ];
 
 function isDisclosureLine(line) {
@@ -74,13 +68,12 @@ export async function extractReport(file) {
   try {
     const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     openedOk = true;
+    const pageLimit = Math.min(pdf.numPages, MAX_PAGES);
     const parts = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
+    for (let i = 1; i <= pageLimit; i++) {
       try {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        // Preserve line structure: pdf.js gives items with positions; join with spaces
-        // but break lines on items flagged hasEOL when available.
         let pageText = "";
         for (const it of content.items) {
           if (!("str" in it)) continue;
@@ -103,7 +96,6 @@ export async function extractReport(file) {
     return { mode: "text", text: filtered };
   }
 
-  // No usable text => scanned/image PDF. Try OCR fallback if small enough.
   if (file.size <= MAX_PDF_BYTES_FOR_FALLBACK) {
     const base64 = await fileToBase64(file);
     return { mode: "pdf", pdf: base64 };

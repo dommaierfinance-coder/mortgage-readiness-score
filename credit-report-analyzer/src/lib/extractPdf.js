@@ -1,21 +1,21 @@
 // src/lib/extractPdf.js
-// Browser-side PDF text extraction with a page cap that covers normal-to-long reports
-// while keeping the downstream analysis under the serverless 60s limit.
-//
-// Reads up to MAX_PAGES, strips obvious payment-grid noise and disclosure boilerplate
-// to keep the payload lean, and falls back to OCR for scanned/image PDFs.
+// Browser-side PDF text extraction that reads the ENTIRE report (no page cap) so no
+// account is ever missed, then returns the text in CHUNKS. Upload.jsx sends each chunk
+// to /api/analyze in parallel and merges the results — keeping each analysis call well
+// under the 60s serverless limit while capturing every tradeline regardless of page.
 
 import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-// Covers the large majority of real client reports (incl. long histories) while
-// staying fast enough to beat the 60s Hobby-plan function timeout.
-const MAX_PAGES = 60;
-const MAX_CHARS = 200000;
 const MIN_TEXT_CHARS = 200;
 const MAX_PDF_BYTES_FOR_FALLBACK = 3.3 * 1024 * 1024;
+// Target size per analysis chunk (chars). Each chunk is one /api/analyze call.
+// ~90k chars keeps a single call comfortably fast under the 60s timeout.
+const CHUNK_TARGET_CHARS = 90000;
+// Safety ceiling on total text we'll process.
+const MAX_TOTAL_CHARS = 400000;
 
 const GRID_TOKEN = /\b(OK|ND|CO|CLS|N\/A|NA|30|60|90|120|150|180|R[1-9]|I[1-9]|C[1-9]|X{1,2})\b/gi;
 const SEPARATORS = /[\s,|/\\\-–—.*]+/g;
@@ -42,7 +42,7 @@ function isDisclosureLine(line) {
   return DISCLOSURE_HINTS.some((h) => l.includes(h));
 }
 
-function filterReportText(raw) {
+function filterLines(raw) {
   const lines = String(raw || "").split("\n");
   const kept = [];
   for (const line of lines) {
@@ -50,11 +50,33 @@ function filterReportText(raw) {
     if (isDisclosureLine(line)) continue;
     kept.push(line);
   }
-  let out = kept.join("\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
-  if (out.length > MAX_CHARS) out = out.slice(0, MAX_CHARS);
-  return out;
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
 }
 
+// Split text into chunks of ~CHUNK_TARGET_CHARS, breaking on line boundaries so an
+// account's lines stay together as much as possible.
+function chunkText(text) {
+  if (text.length <= CHUNK_TARGET_CHARS) return [text];
+  const lines = text.split("\n");
+  const chunks = [];
+  let current = "";
+  for (const line of lines) {
+    if (current.length + line.length + 1 > CHUNK_TARGET_CHARS && current.length > 0) {
+      chunks.push(current);
+      current = "";
+    }
+    current += line + "\n";
+  }
+  if (current.trim()) chunks.push(current);
+  return chunks;
+}
+
+/**
+ * Returns one of:
+ *   { mode: "chunks", chunks: [str, ...] }  -> send each to /api/analyze, merge results
+ *   { mode: "pdf", pdf }                     -> scanned fallback (single call)
+ *   { mode: "error", message }
+ */
 export async function extractReport(file) {
   if (!file || file.type !== "application/pdf") {
     return { mode: "error", message: "Please upload a PDF credit report." };
@@ -68,9 +90,8 @@ export async function extractReport(file) {
   try {
     const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     openedOk = true;
-    const pageLimit = Math.min(pdf.numPages, MAX_PAGES);
     const parts = [];
-    for (let i = 1; i <= pageLimit; i++) {
+    for (let i = 1; i <= pdf.numPages; i++) {
       try {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
@@ -90,12 +111,14 @@ export async function extractReport(file) {
     openedOk = false;
   }
 
-  const filtered = filterReportText(rawText);
+  let filtered = filterLines(rawText);
+  if (filtered.length > MAX_TOTAL_CHARS) filtered = filtered.slice(0, MAX_TOTAL_CHARS);
 
   if (filtered.length >= MIN_TEXT_CHARS) {
-    return { mode: "text", text: filtered };
+    return { mode: "chunks", chunks: chunkText(filtered) };
   }
 
+  // No usable text => scanned/image PDF. OCR fallback (single call) if small enough.
   if (file.size <= MAX_PDF_BYTES_FOR_FALLBACK) {
     const base64 = await fileToBase64(file);
     return { mode: "pdf", pdf: base64 };

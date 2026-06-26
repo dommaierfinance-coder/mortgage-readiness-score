@@ -6,6 +6,84 @@ import { extractReport } from "../lib/extractPdf";
 
 const MAX_MB = 30;
 
+// Send one payload ({text} or {pdf}) to the analyze endpoint and return parsed report.
+async function analyzeOne(payload) {
+  const resp = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.error || `Analysis failed (${resp.status}).`);
+  }
+  return resp.json();
+}
+
+// Merge multiple partial reports (from chunked analysis) into one.
+function mergeReports(reports) {
+  const merged = {
+    bureau: null,
+    reportDate: null,
+    providedScore: null,
+    scoreModel: null,
+    accounts: [],
+    collections: [],
+    inquiries: [],
+    publicRecords: [],
+    personalInfoFlags: [],
+  };
+
+  const seenAcct = new Set();
+  const seenColl = new Set();
+  const seenInq = new Set();
+  const seenPub = new Set();
+
+  const norm = (v) => String(v ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+  for (const r of reports) {
+    if (!r || typeof r !== "object") continue;
+
+    if (merged.bureau == null && r.bureau != null) merged.bureau = r.bureau;
+    if (merged.reportDate == null && r.reportDate != null) merged.reportDate = r.reportDate;
+    if (merged.providedScore == null && r.providedScore != null) merged.providedScore = r.providedScore;
+    if (merged.scoreModel == null && r.scoreModel != null) merged.scoreModel = r.scoreModel;
+
+    for (const a of r.accounts || []) {
+      const sig = `${norm(a.creditor)}|${norm(a.type)}|${norm(a.balance)}|${norm(a.opened)}`;
+      if (seenAcct.has(sig)) continue;
+      seenAcct.add(sig);
+      merged.accounts.push(a);
+    }
+    for (const c of r.collections || []) {
+      const sig = `${norm(c.agency)}|${norm(c.originalCreditor)}|${norm(c.balance)}`;
+      if (seenColl.has(sig)) continue;
+      seenColl.add(sig);
+      merged.collections.push(c);
+    }
+    for (const q of r.inquiries || []) {
+      const sig = `${norm(q.creditor)}|${norm(q.date)}|${norm(q.type)}`;
+      if (seenInq.has(sig)) continue;
+      seenInq.add(sig);
+      merged.inquiries.push(q);
+    }
+    for (const p of r.publicRecords || []) {
+      const sig = `${norm(p.type)}|${norm(p.amount)}|${norm(p.dateFiled)}`;
+      if (seenPub.has(sig)) continue;
+      seenPub.add(sig);
+      merged.publicRecords.push(p);
+    }
+    for (const f of r.personalInfoFlags || []) {
+      if (!merged.personalInfoFlags.includes(f)) merged.personalInfoFlags.push(f);
+    }
+  }
+
+  merged.accounts.forEach((a, i) => { a.id = `a${i + 1}`; });
+  merged.collections.forEach((c, i) => { c.id = `c${i + 1}`; });
+
+  return merged;
+}
+
 export default function Upload({ onAnalyzed }) {
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -36,20 +114,21 @@ export default function Upload({ onAnalyzed }) {
         return;
       }
 
-      const payload =
-        extracted.mode === "text" ? { text: extracted.text } : { pdf: extracted.pdf };
-
-      setStatus("Analyzing accounts, balances and negatives…");
-      const resp = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.error || `Analysis failed (${resp.status}).`);
+      let report;
+      if (extracted.mode === "pdf") {
+        setStatus("Analyzing accounts, balances and negatives…");
+        report = await analyzeOne({ pdf: extracted.pdf });
+      } else {
+        const chunks = extracted.chunks;
+        setStatus(
+          chunks.length > 1
+            ? `Analyzing your report (${chunks.length} sections)…`
+            : "Analyzing accounts, balances and negatives…"
+        );
+        const results = await Promise.all(chunks.map((text) => analyzeOne({ text })));
+        report = results.length === 1 ? results[0] : mergeReports(results);
       }
-      const report = await resp.json();
+
       onAnalyzed(report);
     } catch (e) {
       setError(e.message || "Something went wrong analyzing your report. Please try again.");

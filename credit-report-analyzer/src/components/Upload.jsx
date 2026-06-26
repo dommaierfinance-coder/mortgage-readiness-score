@@ -63,60 +63,51 @@ export default function Upload({ onAnalyzed }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [debug, setDebug] = useState(null);
   const fileRef = useRef(null);
 
   async function handleFile(file) {
-    setError(""); setDebug(null);
+    setError("");
     if (!file) return;
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Please upload a PDF of your credit report."); return;
+      setError("Please upload a PDF of your credit report.");
+      return;
     }
     if (file.size > MAX_MB * 1024 * 1024) {
-      setError(`That file is ${(file.size / 1024 / 1024).toFixed(1)} MB. Please upload a PDF under ${MAX_MB} MB.`); return;
+      setError(`That file is ${(file.size / 1024 / 1024).toFixed(1)} MB. Please upload a PDF under ${MAX_MB} MB.`);
+      return;
     }
-    setBusy(true); setStatus("Reading your report…");
+    setBusy(true);
+    setStatus("Reading your report…");
     try {
       const extracted = await extractReport(file);
+
       if (extracted.mode === "error") {
-        setError(extracted.message); setBusy(false); setStatus(""); return;
+        setError(extracted.message);
+        setBusy(false);
+        setStatus("");
+        return;
       }
 
       let report;
-      const dbg = { mode: extracted.mode, chunks: [] };
-
       if (extracted.mode === "pdf") {
         setStatus("Analyzing accounts, balances and negatives…");
         report = await analyzeOne({ pdf: extracted.pdf });
-        dbg.chunks.push({ idx: 0, chars: "(pdf)", accounts: (report.accounts || []).length, creditors: (report.accounts || []).map((a) => a.creditor) });
       } else {
         const chunks = extracted.chunks;
-        setStatus(`Analyzing your report (${chunks.length} sections)…`);
-        const results = [];
-        for (let i = 0; i < chunks.length; i++) {
-          try {
-            const r = await analyzeOne({ text: chunks[i] });
-            results.push(r);
-            dbg.chunks.push({
-              idx: i, chars: chunks[i].length,
-              accounts: (r.accounts || []).length,
-              creditors: (r.accounts || []).map((a) => `${a.creditor} (${a.type})`),
-            });
-          } catch (err) {
-            dbg.chunks.push({ idx: i, chars: chunks[i].length, error: err.message });
-          }
-        }
+        setStatus(
+          chunks.length > 1
+            ? `Analyzing your report (${chunks.length} sections)…`
+            : "Analyzing accounts, balances and negatives…"
+        );
+        const results = await Promise.all(chunks.map((text) => analyzeOne({ text })));
         report = results.length === 1 ? results[0] : mergeReports(results);
       }
 
-      dbg.mergedAccounts = (report.accounts || []).length;
-      setDebug(dbg);
-      setStatus("");
-      setBusy(false);
-      window.__pendingReport = report;
+      onAnalyzed(report);
     } catch (e) {
       setError(e.message || "Something went wrong analyzing your report. Please try again.");
-      setBusy(false); setStatus("");
+      setBusy(false);
+      setStatus("");
     }
   }
 
@@ -129,7 +120,9 @@ export default function Upload({ onAnalyzed }) {
         onClick={() => !busy && fileRef.current?.click()}
         style={{
           border: `2px dashed ${drag ? ACCENT : "rgba(255,255,255,0.15)"}`,
-          borderRadius: 12, padding: "3rem 2rem", textAlign: "center",
+          borderRadius: 12,
+          padding: "3rem 2rem",
+          textAlign: "center",
           cursor: busy ? "default" : "pointer",
           background: drag ? "rgba(201,169,110,0.05)" : "rgba(255,255,255,0.02)",
           transition: "all 0.2s ease",
@@ -140,6 +133,7 @@ export default function Upload({ onAnalyzed }) {
           <div>
             <div style={{ width: 28, height: 28, margin: "0 auto 1rem", borderRadius: "50%", border: "3px solid rgba(201,169,110,0.2)", borderTop: `3px solid ${ACCENT}`, animation: "spin 0.8s linear infinite" }} />
             <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.95rem", margin: 0 }}>{status}</p>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.78rem", marginTop: "0.5rem" }}>This usually takes 15–30 seconds.</p>
           </div>
         ) : (
           <div>
@@ -152,23 +146,19 @@ export default function Upload({ onAnalyzed }) {
 
       {error && <p style={{ color: RED, fontSize: "0.85rem", marginTop: "1rem", textAlign: "center" }}>{error}</p>}
 
-      {debug && (
-        <div style={{ marginTop: "1.25rem", padding: "1rem", border: `1px solid ${ACCENT}`, borderRadius: 8, background: "rgba(0,0,0,0.4)", fontSize: "0.72rem", color: "rgba(255,255,255,0.85)", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-          <div style={{ color: ACCENT, marginBottom: 8 }}>DEBUG — {debug.chunks.length} chunk(s), merged accounts: {debug.mergedAccounts}</div>
-          {debug.chunks.map((c) => (
-            <div key={c.idx} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-              <div>chunk {c.idx} · {c.chars} chars · {c.error ? `ERROR: ${c.error}` : `${c.accounts} accounts`}</div>
-              {c.creditors && c.creditors.length > 0 && <div style={{ color: "rgba(255,255,255,0.55)" }}>{c.creditors.join(", ")}</div>}
-            </div>
-          ))}
-          <Button variant="ghost" onClick={() => onAnalyzed(window.__pendingReport)}>Continue to dashboard →</Button>
-        </div>
-      )}
-
       <div style={{ display: "flex", justifyContent: "center", marginTop: "1.25rem" }}>
         <Button variant="ghost" onClick={() => onAnalyzed(SAMPLE_REPORT)} disabled={busy}>
           Try it with sample data →
         </Button>
+      </div>
+
+      <div style={{ marginTop: "2rem", padding: "1.1rem 1.25rem", border: `1px solid ${BORDER}`, borderRadius: 8, background: "rgba(255,255,255,0.015)" }}>
+        <div style={{ fontSize: "0.65rem", color: ACCENT, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600, marginBottom: "0.6rem" }}>Your privacy</div>
+        <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "rgba(255,255,255,0.5)", fontSize: "0.82rem", lineHeight: 1.7 }}>
+          <li>Your report is analyzed and <strong style={{ color: "rgba(255,255,255,0.7)" }}>never stored</strong> on our servers.</li>
+          <li>The analysis runs in your browser; only non-identifying score snapshots are kept locally for progress tracking.</li>
+          <li>Get your free report at <span style={{ color: ACCENT }}>AnnualCreditReport.com</span> and download it as a PDF.</li>
+        </ul>
       </div>
     </div>
   );

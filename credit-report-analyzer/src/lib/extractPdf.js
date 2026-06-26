@@ -1,8 +1,12 @@
 // src/lib/extractPdf.js
-// Browser-side PDF text extraction that reads the ENTIRE report (no page cap) so no
-// account is ever missed, then returns the text in CHUNKS. Upload.jsx sends each chunk
-// to /api/analyze in parallel and merges the results — keeping each analysis call well
-// under the 60s serverless limit while capturing every tradeline regardless of page.
+// Browser-side PDF text extraction. Reads the ENTIRE report (no page cap) so no account
+// is missed, strips only safe legal-disclosure boilerplate, then returns the text in
+// CHUNKS. Upload.jsx sends each chunk to /api/analyze in parallel and merges results,
+// keeping each call under the 60s serverless limit.
+//
+// NOTE: We intentionally do NOT strip "payment grid" lines. Accounts with long payment
+// histories (mortgages, HELOCs, old cards) have many status marks, and aggressive grid
+// filtering was deleting those real accounts. The parallel chunking handles size instead.
 
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -11,28 +15,18 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 const MIN_TEXT_CHARS = 200;
 const MAX_PDF_BYTES_FOR_FALLBACK = 3.3 * 1024 * 1024;
-// Target size per analysis chunk (chars). Each chunk is one /api/analyze call.
-// ~90k chars keeps a single call comfortably fast under the 60s timeout.
-const CHUNK_TARGET_CHARS = 90000;
-// Safety ceiling on total text we'll process.
-const MAX_TOTAL_CHARS = 400000;
+// Target size per analysis chunk (chars). One chunk = one /api/analyze call.
+const CHUNK_TARGET_CHARS = 85000;
+// Safety ceiling on total processed text.
+const MAX_TOTAL_CHARS = 500000;
 
-const GRID_TOKEN = /\b(OK|ND|CO|CLS|N\/A|NA|30|60|90|120|150|180|R[1-9]|I[1-9]|C[1-9]|X{1,2})\b/gi;
-const SEPARATORS = /[\s,|/\\\-–—.*]+/g;
-
-function isGridNoiseLine(line) {
-  const trimmed = line.trim();
-  if (trimmed.length < 12) return false;
-  const stripped = trimmed.replace(GRID_TOKEN, "").replace(SEPARATORS, "");
-  return stripped.length / trimmed.length < 0.15;
-}
-
+// Only strip clearly-legal disclosure lines — never account/grid data.
 const DISCLOSURE_HINTS = [
   "fair credit reporting act",
   "summary of your rights",
-  "you have the right",
+  "you have the right to",
   "para informaci",
-  "equal credit opportunity",
+  "equal credit opportunity act",
   "consumer financial protection bureau",
   "permissible purpose",
 ];
@@ -46,15 +40,13 @@ function filterLines(raw) {
   const lines = String(raw || "").split("\n");
   const kept = [];
   for (const line of lines) {
-    if (isGridNoiseLine(line)) continue;
     if (isDisclosureLine(line)) continue;
     kept.push(line);
   }
   return kept.join("\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
 }
 
-// Split text into chunks of ~CHUNK_TARGET_CHARS, breaking on line boundaries so an
-// account's lines stay together as much as possible.
+// Split into ~CHUNK_TARGET_CHARS pieces on line boundaries.
 function chunkText(text) {
   if (text.length <= CHUNK_TARGET_CHARS) return [text];
   const lines = text.split("\n");
@@ -71,12 +63,6 @@ function chunkText(text) {
   return chunks;
 }
 
-/**
- * Returns one of:
- *   { mode: "chunks", chunks: [str, ...] }  -> send each to /api/analyze, merge results
- *   { mode: "pdf", pdf }                     -> scanned fallback (single call)
- *   { mode: "error", message }
- */
 export async function extractReport(file) {
   if (!file || file.type !== "application/pdf") {
     return { mode: "error", message: "Please upload a PDF credit report." };
@@ -118,7 +104,6 @@ export async function extractReport(file) {
     return { mode: "chunks", chunks: chunkText(filtered) };
   }
 
-  // No usable text => scanned/image PDF. OCR fallback (single call) if small enough.
   if (file.size <= MAX_PDF_BYTES_FOR_FALLBACK) {
     const base64 = await fileToBase64(file);
     return { mode: "pdf", pdf: base64 };

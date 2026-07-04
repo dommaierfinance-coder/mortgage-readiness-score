@@ -15,7 +15,7 @@ const REPLY_TO = "dom@dommaierfinance.com";
 // Live links
 const DEMO_URL = "https://youtu.be/uiQDMFExyxo";
 const ANALYZER_URL = "https://analyzer.dommaierfinance.com";
-const GUMROAD_URL = "https://dommaierfinance.gumroad.com/l/dmhdih"; // Credit Report Analyzer
+const GUMROAD_URL = "https://financier54.gumroad.com/l/dmhdih"; // Credit Report Analyzer
 const DISCOUNT_CODE = "T2CAL0X";
 
 // --- The sequence. step = which email; day = days after Created_at it should send ---
@@ -135,13 +135,19 @@ function btn(label, url) {
     <a href="${url}" style="background:#c9a84c;color:#1a1a1a;font-weight:bold;text-decoration:none;padding:13px 26px;border-radius:6px;display:inline-block;">${label}</a>
   </p>`;
 }
+// Discount CTA reused across every email
+function offerBlock() {
+  return `${btn(`Get the Credit Report Analyzer — $16 →`, GUMROAD_URL)}
+  <p style="text-align:center;color:#8a8170;font-size:13px;margin-top:-10px;">Use code <b>${DISCOUNT_CODE}</b> at checkout for 20% off</p>`;
+}
 
 function email1(name) {
   return wrap(`<p>Hey ${name},</p>
   <p>Thanks for requesting the demo — here it is.</p>
   ${btn("▶️ Watch the 2-minute walkthrough", DEMO_URL)}
   <p>In it, I show you exactly how the Credit Report Analyzer breaks down your credit report into plain English — what's helping your score, what's holding it back, and where to focus first. No jargon, no guesswork.</p>
-  <p>Give it a watch, and if you've got questions, just hit reply. I read every one.</p>${signoff()}`);
+  <p>Give it a watch, and if you've got questions, just hit reply. I read every one.</p>
+  ${offerBlock()}${signoff()}`);
 }
 function email2(name) {
   return wrap(`<p>Hey ${name},</p>
@@ -149,7 +155,8 @@ function email2(name) {
   <p>Most people have <i>never actually read</i> their own credit report. Not because they don't care — because it's written to be confusing. Pages of codes, cryptic account statuses, numbers that decide whether they get approved or turned away.</p>
   <p>That's the whole reason I built the Credit Report Analyzer. You upload your report, and it translates the entire thing into language that actually makes sense — your five score factors, what each one means, and which ones are dragging you down.</p>
   <p>If you missed the demo yesterday, here it is again:</p>
-  ${btn("▶️ Watch the demo", DEMO_URL)}${signoff()}`);
+  ${btn("▶️ Watch the demo", DEMO_URL)}
+  ${offerBlock()}${signoff()}`);
 }
 function email3(name) {
   return wrap(`<p>Hey ${name},</p>
@@ -157,16 +164,14 @@ function email3(name) {
   <p><b>Payment history is the single biggest factor in your score — about 35% of it.</b> More than your balances, more than the length of your history, more than anything else.</p>
   <p>That's why one missed payment can hurt more than people expect, and why consistent on-time payments are one of the most widely cited habits for building credit over time. A lot of folks set up autopay for at least the minimums just to protect that history.</p>
   <p>The Analyzer shows you exactly how your payment history is scoring right now — and breaks down the other four factors too, so you can see the full picture instead of guessing.</p>
-  ${btn("See how it works", DEMO_URL)}${signoff()}`);
+  ${offerBlock()}${signoff()}`);
 }
 function email4(name) {
   return wrap(`<p>Hey ${name},</p>
   <p>Another one worth understanding: <b>credit utilization</b> — how much of your available credit you're using — is about 30% of your score.</p>
   <p>Here's the part most people miss: it's not just your <i>total</i> utilization that matters, it's each card individually. One maxed-out card can weigh on your score even if your others have plenty of room. Many people aim to keep balances well under 30% of each card's limit as a general reference point.</p>
   <p>The Analyzer's paydown tool actually shows you <i>which card to pay down first</i> for the biggest impact — using whatever amount you've got to work with. It takes the guesswork out completely.</p>
-  <p>If you're ready to see your own report broken down like this, you can get full access for just <b>$16</b> right now — that's 20% off with code <b>${DISCOUNT_CODE}</b> at checkout:</p>
-  ${btn("Get the Credit Report Analyzer →", GUMROAD_URL)}
-  <p style="text-align:center;color:#8a8170;font-size:13px;">Use code <b>${DISCOUNT_CODE}</b> for 20% off</p>${signoff()}`);
+  ${offerBlock()}${signoff()}`);
 }
 function email5(name) {
   return wrap(`<p>Hey ${name},</p>
@@ -178,8 +183,7 @@ function email5(name) {
   ✅ A negatives breakdown showing what's on there and when it typically ages off<br>
   ✅ Progress tracking so you can watch your numbers over time</p>
   <p>All of it, right now, for <b>$16</b> with code <b>${DISCOUNT_CODE}</b> (normally $20):</p>
-  ${btn("Get full access →", GUMROAD_URL)}
-  <p style="text-align:center;color:#8a8170;font-size:13px;">Code <b>${DISCOUNT_CODE}</b> at checkout</p>
+  ${offerBlock()}
   <p>This is the clearest picture of your credit you'll get without paying for a full report or a consultant.</p>${signoff()}`);
 }
 function email6(name) {
@@ -187,6 +191,6 @@ function email6(name) {
   <p>Quick heads up — the <b>${DISCOUNT_CODE}</b> discount comes down after today.</p>
   <p>After that, the Credit Report Analyzer goes back to full price. If you've been thinking about finally seeing what's actually on your credit report — and what to do about it — this is the moment to grab it while it's <b>$16 instead of $20</b>.</p>
   ${btn("Get the Analyzer for $16 →", GUMROAD_URL)}
-  <p style="text-align:center;color:#8a8170;font-size:13px;">Use code <b>${DISCOUNT_CODE}</b> — expires tonight</p>
+  <p style="text-align:center;color:#8a8170;font-size:13px;margin-top:-10px;">Use code <b>${DISCOUNT_CODE}</b> — expires tonight</p>
   <p>Whatever you decide, I'm glad you've been following along this week. Understanding your credit is the first real step toward being mortgage-ready — and you're already ahead of most people just for paying attention to it.</p>${signoff()}`);
 }
